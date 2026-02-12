@@ -1,0 +1,62 @@
+version: 2
+
+project_name: ams
+
+builds:
+  - id: ams
+    main: ./cmd/ams
+    binary: ams
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/dl-alexandre/Apple-Map-Server-CLI/internal/version.Version={{.Version}}
+      - -X github.com/dl-alexandre/Apple-Map-Server-CLI/internal/version.Commit={{.Commit}}
+      - -X github.com/dl-alexandre/Apple-Map-Server-CLI/internal/version.Date={{.Date}}
+
+archives:
+  - id: default
+    format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+release:
+  github:
+    owner: dl-alexandre
+    name: Apple-Map-Server-CLI
+  draft: false
+  prerelease: auto
+  name_template: "v{{.Version}}"
+
+brews:
+  - name: ams
+    repository:
+      owner: dl-alexandre
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: https://github.com/dl-alexandre/Apple-Map-Server-CLI
+    description: Apple Map Server CLI
+    license: MIT
+    test: |
+      system "#{bin}/ams", "version"
+    install: |
+      bin.install "ams"

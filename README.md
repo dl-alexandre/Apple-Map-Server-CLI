@@ -8,6 +8,13 @@
 go install github.com/dl-alexandre/Apple-Map-Server-CLI/cmd/ams@latest
 ```
 
+## Install (Homebrew)
+
+```bash
+brew tap dl-alexandre/tap
+brew install ams
+```
+
 ## Usage
 
 ```bash
