@@ -1,0 +1,4 @@
+Usage:
+  ams geocode [--json] [--limit N] [--file <path>] [--concurrency N] <address>
+
+Geocode an address.
