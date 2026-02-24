@@ -1,6 +1,6 @@
 module github.com/dl-alexandre/Apple-Map-Server-CLI
 
-go 1.22
+go 1.24
 
 require github.com/olekukonko/tablewriter v1.1.3
 

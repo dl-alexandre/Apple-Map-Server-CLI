@@ -1,0 +1,43 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  default: none
+  enable:
+    # Baseline "industry standard" Go checks.
+    - govet
+    - staticcheck
+    - errcheck
+    - ineffassign
+    - unused
+    - misspell
+    - unparam
+    - errorlint
+
+  settings:
+    misspell:
+      # Words used intentionally in CLI context.
+      ignore-rules:
+        - cancelled
+        - cancelling
+
+issues:
+  exclude-rules:
+    # Ignore stylecheck naming warnings to avoid massive rename churn
+    - linters: [staticcheck]
+      text: "ST1003:"
+    # Note: errcheck disabled due to widespread unchecked error patterns
+    # (Close, Setenv, RemoveAll, etc.) that predate this config and would 
+    # require massive refactoring to fix properly
+    - linters: [errcheck]
+      text: "Error return value"
+    # Ignore quickfix suggestions that predate this config
+    - linters:
+        - staticcheck
+      text: "QF1012"
+    - linters:
+        - staticcheck
+      text: "QF1002"
