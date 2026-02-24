@@ -14,6 +14,25 @@ permissions:
   contents: read
 
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: latest
+          args: --timeout=5m
+
   test:
     name: Test
     runs-on: ${{ matrix.os }}
@@ -48,14 +67,21 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: test
+    needs: [lint, test]
     strategy:
+      fail-fast: false
       matrix:
-        os: [linux, darwin, windows]
-        arch: [amd64, arm64]
-        exclude:
-          - os: windows
+        include:
+          - os: linux
+            arch: amd64
+          - os: linux
             arch: arm64
+          - os: darwin
+            arch: amd64
+          - os: darwin
+            arch: arm64
+          - os: windows
+            arch: amd64
 
     steps:
       - name: Checkout code
@@ -67,50 +93,29 @@ jobs:
           go-version: '1.24.x'
           cache: true
 
-      - name: Build binaries
+      - name: Build binary
         env:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
         run: |
-          mkdir -p bin
+          mkdir -p dist
+          binary_name="ams-${{ matrix.os }}-${{ matrix.arch }}"
           if [ "${{ matrix.os }}" = "windows" ]; then
-            go build -trimpath -ldflags "-s -w" -o "bin/ams-${{ matrix.os }}-${{ matrix.arch }}.exe" ./cmd/ams
+            go build -trimpath -ldflags "-s -w" -o "dist/${binary_name}.exe" ./cmd/ams
           else
-            go build -trimpath -ldflags "-s -w" -o "bin/ams-${{ matrix.os }}-${{ matrix.arch }}" ./cmd/ams
+            go build -trimpath -ldflags "-s -w" -o "dist/${binary_name}" ./cmd/ams
           fi
 
-      - name: Upload artifacts
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: binaries-${{ matrix.os }}-${{ matrix.arch }}
-          path: bin/
+          name: ams-${{ matrix.os }}-${{ matrix.arch }}
+          path: dist/
           retention-days: 7
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.24.x'
-          cache: true
-
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v7
-        with:
-          version: latest
-          args: --timeout=5m
 
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-    continue-on-error: true  # Don't fail build for security scan
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -118,10 +123,11 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24.x'
+          go-version-file: go.mod
           cache: true
 
       - name: Run govulncheck
-        run: |
-          go install golang.org/x/vuln/cmd/govulncheck@latest
-          govulncheck ./... || true  # Don't fail build
+        uses: golang/govulncheck-action@v1
+        with:
+          go-version-input: '1.24.x'
+          check-latest: true
