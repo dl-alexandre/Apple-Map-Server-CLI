@@ -7,28 +7,54 @@ on:
 
 permissions:
   contents: write
-  packages: write
 
 jobs:
-  goreleaser:
+  build-release:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [linux, darwin, windows]
+        arch: [amd64, arm64]
+        exclude:
+          - os: windows
+            arch: arm64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Set up Go
+      - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: "go.mod"
-          cache: true
+          go-version-file: go.mod
+          check-latest: true
 
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          version: latest
-          args: release --clean
+      - name: Build
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          mkdir -p dist
+          if [ "${{ matrix.os }}" = "windows" ]; then
+            go build -trimpath -ldflags="-s -w" -o "dist/ams.exe" ./cmd/ams
+          else
+            go build -trimpath -ldflags="-s -w" -o "dist/ams" ./cmd/ams
+          fi
+
+      - name: Package
+        run: |
+          if [ "${{ matrix.os }}" = "windows" ]; then
+            zip -j "dist/ams-${{ matrix.os }}-${{ matrix.arch }}.zip" "dist/ams.exe"
+          else
+            tar -czf "dist/ams-${{ matrix.os }}-${{ matrix.arch }}.tar.gz" -C dist ams
+          fi
+
+      - name: Checksums
+        run: |
+          cd dist
+          sha256sum ams-* > checksums.txt
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*

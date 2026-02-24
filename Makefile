@@ -1,8 +1,10 @@
-.PHONY: build build-all test lint clean install
+.PHONY: build build-all test lint clean install format install-hooks
 
 BINARY_NAME=ams
 VERSION=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
-LDFLAGS=-ldflags "-X main.version=$(VERSION) -s -w"
+GIT_COMMIT=$(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+BUILD_TIME=$(shell date -u '+%Y-%m-%d_%H:%M:%S')
+LDFLAGS=-ldflags "-X github.com/dl-alexandre/Apple-Map-Server-CLI/internal/version.Version=$(VERSION) -X github.com/dl-alexandre/Apple-Map-Server-CLI/internal/version.Commit=$(GIT_COMMIT) -X github.com/dl-alexandre/Apple-Map-Server-CLI/internal/version.Date=$(BUILD_TIME) -s -w"
 
 # Build for current platform
 build:
@@ -37,3 +39,19 @@ clean:
 # Install locally
 install: build
 	go install ./cmd/ams
+
+# Format code
+format:
+	@echo "Formatting code..."
+	@gofmt -w -s .
+	@if command -v goimports >/dev/null 2>&1; then \
+		goimports -w .; \
+	else \
+		echo "goimports not installed. Install: go install golang.org/x/tools/cmd/goimports@latest"; \
+	fi
+
+# Install git hooks
+install-hooks:
+	@echo "Installing git hooks..."
+	@git config core.hooksPath .githooks
+	@echo "Hooks installed from .githooks/"
