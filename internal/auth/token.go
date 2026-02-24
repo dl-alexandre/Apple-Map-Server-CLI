@@ -91,7 +91,7 @@ func exchangeMapsToken(cfg Config, client *httpclient.Client, now time.Time) (To
 	if err != nil {
 		return Token{}, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

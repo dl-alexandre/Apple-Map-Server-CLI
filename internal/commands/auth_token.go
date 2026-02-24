@@ -35,37 +35,37 @@ func NewAuthTokenCommand() Command {
 			fs.SetOutput(io.Discard)
 			if err := fs.Parse(args); err != nil {
 				if errors.Is(err, flag.ErrHelp) {
-					fmt.Fprint(stdout, authTokenUsage)
+					_, _ = fmt.Fprint(stdout, authTokenUsage)
 					return ExitSuccess
 				}
-				fmt.Fprintln(stderr, err)
-				fmt.Fprint(stderr, authTokenUsage)
+				_, _ = fmt.Fprintln(stderr, err)
+				_, _ = fmt.Fprint(stderr, authTokenUsage)
 				return ExitUsageError
 			}
 
 			if *rawOut && *jsonOut {
-				fmt.Fprintln(stderr, "raw and json cannot be used together")
-				fmt.Fprint(stderr, authTokenUsage)
+				_, _ = fmt.Fprintln(stderr, "raw and json cannot be used together")
+				_, _ = fmt.Fprint(stderr, authTokenUsage)
 				return ExitUsageError
 			}
 
 			if fs.NArg() != 0 {
-				fmt.Fprintln(stderr, "auth token accepts no arguments")
-				fmt.Fprint(stderr, authTokenUsage)
+				_, _ = fmt.Fprintln(stderr, "auth token accepts no arguments")
+				_, _ = fmt.Fprint(stderr, authTokenUsage)
 				return ExitUsageError
 			}
 
 			client, err := httpclient.New()
 			if err != nil {
-				fmt.Fprintln(stderr, err)
-				fmt.Fprint(stderr, authTokenUsage)
+				_, _ = fmt.Fprintln(stderr, err)
+				_, _ = fmt.Fprint(stderr, authTokenUsage)
 				return ExitUsageError
 			}
 
 			cfg, err := auth.LoadConfigFromEnv()
 			if err != nil {
-				fmt.Fprintln(stderr, err)
-				fmt.Fprint(stderr, authTokenUsage)
+				_, _ = fmt.Fprintln(stderr, err)
+				_, _ = fmt.Fprint(stderr, authTokenUsage)
 				return ExitUsageError
 			}
 
@@ -73,16 +73,16 @@ func NewAuthTokenCommand() Command {
 			token, source, err := accessTokenProvider(cfg, client, now)
 			if err != nil {
 				if auth.IsMissingEnv(err) {
-					fmt.Fprintln(stderr, err)
-					fmt.Fprint(stderr, authTokenUsage)
+					_, _ = fmt.Fprintln(stderr, err)
+					_, _ = fmt.Fprint(stderr, authTokenUsage)
 					return ExitUsageError
 				}
-				fmt.Fprintln(stderr, err)
+				_, _ = fmt.Fprintln(stderr, err)
 				return ExitRuntimeError
 			}
 
 			if *rawOut {
-				fmt.Fprintln(stdout, token.Value)
+				_, _ = fmt.Fprintln(stdout, token.Value)
 				return ExitSuccess
 			}
 
@@ -100,20 +100,20 @@ func NewAuthTokenCommand() Command {
 				}
 				data, err := json.Marshal(payload)
 				if err != nil {
-					fmt.Fprintln(stderr, err)
+					_, _ = fmt.Fprintln(stderr, err)
 					return ExitRuntimeError
 				}
-				fmt.Fprintln(stdout, string(data))
+				_, _ = fmt.Fprintln(stdout, string(data))
 				return ExitSuccess
 			}
 
-			fmt.Fprintf(stdout, "maps_token_present %t\n", strings.TrimSpace(cfg.MapsToken) != "")
+			_, _ = fmt.Fprintf(stdout, "maps_token_present %t\n", strings.TrimSpace(cfg.MapsToken) != "")
 			if !token.ExpiresAt.IsZero() {
-				fmt.Fprintf(stdout, "access_token_expires_at %s\n", token.ExpiresAt.UTC().Format(time.RFC3339))
+				_, _ = fmt.Fprintf(stdout, "access_token_expires_at %s\n", token.ExpiresAt.UTC().Format(time.RFC3339))
 			} else if token.ExpiresIn > 0 {
-				fmt.Fprintf(stdout, "access_token_expires_in %ds\n", token.ExpiresIn)
+				_, _ = fmt.Fprintf(stdout, "access_token_expires_in %ds\n", token.ExpiresIn)
 			}
-			fmt.Fprintf(stdout, "source %s\n", source)
+			_, _ = fmt.Fprintf(stdout, "source %s\n", source)
 			return ExitSuccess
 		},
 	}

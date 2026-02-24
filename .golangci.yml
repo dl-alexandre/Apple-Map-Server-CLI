@@ -10,7 +10,6 @@ linters:
     # Baseline "industry standard" Go checks.
     - govet
     - staticcheck
-    - errcheck
     - ineffassign
     - unused
     - misspell
