@@ -1,4 +1,4 @@
-.PHONY: build build-all test lint clean install format install-hooks
+.PHONY: build build-all test lint clean install format install-hooks security check vet deps
 
 BINARY_NAME=ams
 VERSION=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -27,16 +27,28 @@ lint:
 	golangci-lint run ./...
 
 # Download dependencies
+.PHONY: deps
 deps:
 	go mod download
 	go mod tidy
+	go mod verify
 
 # Clean build artifacts
 clean:
 	rm -f $(BINARY_NAME)
 	rm -rf dist/
 
+# Run all checks (format, vet, lint, test)
+.PHONY: check
+check: format vet lint test
+
+# Run go vet
+.PHONY: vet
+vet:
+	go vet ./...
+
 # Install locally
+.PHONY: install
 install: build
 	go install ./cmd/ams
 
@@ -55,3 +67,9 @@ install-hooks:
 	@echo "Installing git hooks..."
 	@git config core.hooksPath .githooks
 	@echo "Hooks installed from .githooks/"
+
+# Run security scan
+security:
+	@echo "Running security scan..."
+	@which gosec > /dev/null || (echo "Installing gosec..." && go install github.com/securego/gosec/v2/cmd/gosec@latest)
+	gosec -quiet ./...

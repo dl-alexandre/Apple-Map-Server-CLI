@@ -1,5 +1,7 @@
 # Apple Map Server CLI (ams)
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/dl-alexandre/Apple-Map-Server-CLI)](https://goreportcard.com/report/github.com/dl-alexandre/Apple-Map-Server-CLI)
+
 `ams` is a CLI tool for interacting with Apple Maps Server APIs.
 
 **⚠️ IMPORTANT: Apple Maps Server API tokens expire every 7 days.** When your token expires, you must manually generate a new one at https://developer.apple.com/maps/server-api/
