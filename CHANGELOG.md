@@ -40,6 +40,22 @@ All notable changes to this project will be documented in this file.
   - Human-readable file size formatting (B, KB, MB)
   - Cache statistics: total, active, and expired entries
 
+- **Snapshot Command**: Static map image generation (Web Snapshots API)
+  - `ams snapshot <center>` generates map images
+  - `--zoom N`: Zoom level 1-20 (default: 12)
+  - `--size WxH`: Image dimensions (default: 600x400)
+  - `--format png|jpg`: Output format (default: png)
+  - `--output <path>`: Save to specific file
+  - ECDSA signature generation for URL signing
+  - Support for coordinates or address as center point
+  - 6 comprehensive snapshot command tests
+
+- **Snapshot Authentication**: URL signing with private key
+  - Requires `AMS_TEAM_ID`, `AMS_KEY_ID`, and `AMS_PRIVATE_KEY`
+  - ECDSA signature using ES256 algorithm
+  - SHA-256 hash of teamId + URL path
+  - ASN.1 DER encoding with base64 URL-safe encoding
+
 - **Coordinate Parsing Helpers**: Robust validation for geographic inputs
   - `parseCoordinate("lat,lng")` with latitude/longitude bounds checking
   - `parseBoundingBox("n,e,s,w")` with geometry validation
@@ -50,8 +66,10 @@ All notable changes to this project will be documented in this file.
 - Added 10 dedicated test cases for the autocomplete command
 - Added 15 cache package test cases for geocode caching functionality
 - Added cache management command tests
+- Added 6 snapshot command tests
+- Added ECDSA signature generation tests for URL signing
 - Subcommand routing from `ams search` to `ams search autocomplete` with clean separation
-- Total test coverage: 70+ test cases across coordinate parsing, search, autocomplete, cache, and cache management
+- Total test coverage: 75+ test cases across all features
 
 ### Usage Notes
 

@@ -10,6 +10,7 @@ Commands:
   search [--near "lat,lng"] [--region "n,e,s,w"] [--near-address <addr>] [--no-cache] [--limit N] [--category <cat>] [--json] <query>  Search for places and points of interest
   search autocomplete [--near "lat,lng"] [--limit N] [--json] <query>                                                                  Get autocomplete suggestions for search queries
   cache <stats|clear>                                                                                                                  Manage geocode cache
+  snapshot <center> [--zoom N] [--size WxH] [--format png|jpg] [--output <path>]                                                       Generate a static map image
   ping [--request-id]                                                                                                                  Ping the Apple Map Server
   version                                                                                                                              Show version info
 

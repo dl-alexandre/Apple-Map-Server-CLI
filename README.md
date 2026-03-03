@@ -52,6 +52,7 @@ ams search --region "37.8,-122.4,37.7,-122.5" --category fuel "gas stations"
 - `search [--near "lat,lng"] [--region "n,e,s,w"] [--near-address <addr>] [--no-cache] [--limit N] [--category <cat>] [--json] <query>` Search for places and POIs
 - `search autocomplete [--near "lat,lng"] [--limit N] [--json] <query>` Get autocomplete suggestions
 - `cache <stats|clear>` Manage geocode cache
+- `snapshot <center> [--zoom N] [--size WxH] [--format png|jpg] [--output <path>]` Generate static map image
 - `version` Show version info
 - `ping [--request-id]` Ping the Apple Map Server
 
@@ -162,10 +163,44 @@ The autocomplete response includes:
 - `displayLines`: The suggestion text to show to users (usually 1-2 lines)
 - `completionUrl`: A URL path to fetch full POI details if the user selects this suggestion
 
+### Snapshot (Static Maps)
+
+Generate static map images using the Apple Maps Web Snapshot API. This requires URL signing with your private key.
+
+**Generate a map image:**
+```bash
+ams snapshot "37.7749,-122.4194"
+ams snapshot "San Francisco, CA" --zoom 14 --size 600x400
+ams snapshot "1 Infinite Loop, Cupertino" --zoom 16 --output map.png
+```
+
+**Customize the map:**
+```bash
+# Change zoom level (1-20)
+ams snapshot "London, UK" --zoom 10 --size 800x600
+
+# Use JPEG format
+ams snapshot "New York, NY" --format jpg --output nyc.jpg
+
+# Specify output file
+ams snapshot "Tokyo, Japan" --zoom 12 --output tokyo.png
+```
+
+**Snapshot Environment Variables:**
+The snapshot API requires additional credentials for URL signing:
+- `AMS_TEAM_ID` - Your Apple Developer Team ID (10 characters)
+- `AMS_KEY_ID` - Your Maps Key ID (10 characters)  
+- `AMS_PRIVATE_KEY` - Your private key content (or use `AMS_PRIVATE_KEY_PATH`)
+
+These are separate from `AMS_MAPS_TOKEN` and are used to cryptographically sign snapshot URLs.
+
 ## Environment Variables
 
 - `AMS_MAPS_TOKEN` (**required**) - Maps Token from Apple Developer portal
   - **⚠️ EXPIRES EVERY 7 DAYS** - must be manually regenerated
+- `AMS_TEAM_ID` (required for `snapshot`) - Apple Developer Team ID
+- `AMS_KEY_ID` (required for `snapshot`) - Maps Key ID
+- `AMS_PRIVATE_KEY` or `AMS_PRIVATE_KEY_PATH` (required for `snapshot`) - Private key for URL signing
 - `AMS_BASE_URL` (optional, override API base URL)
 - `AMS_DEBUG=1` (optional, emit token exchange debug logs to stderr)
 
