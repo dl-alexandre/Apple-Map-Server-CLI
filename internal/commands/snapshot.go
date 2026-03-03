@@ -3,16 +3,14 @@ package commands
 import (
 	"fmt"
 	"io"
-	"net/http"
-	"net/url"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/dl-alexandre/Apple-Map-Server-CLI/internal/auth"
 	"github.com/dl-alexandre/Apple-Map-Server-CLI/internal/httpclient"
+	"github.com/dl-alexandre/Apple-Map-Server-CLI/internal/pkg/mapsrv"
 )
 
 const snapshotUsage = `Usage:
@@ -28,15 +26,6 @@ Examples:
   ams snapshot "1 Infinite Loop, Cupertino" --zoom 16 --output map.png
   ams snapshot "London, UK" --size 800x600 --format jpg --output london.jpg
 `
-
-// SnapshotConfig holds configuration for snapshot generation
-type SnapshotConfig struct {
-	Center string
-	Zoom   int
-	Size   string
-	Format string
-	Output string
-}
 
 func NewSnapshotCommand() Command {
 	return Command{
@@ -97,32 +86,22 @@ func NewSnapshotCommand() Command {
 				output = fmt.Sprintf("snapshot_%d.%s", time.Now().Unix(), format)
 			}
 
-			// Load Maps Token (for consistency check)
+			// Load auth config
 			_, err := auth.LoadConfigFromEnv()
 			if err != nil {
 				fmt.Fprintln(stderr, err)
-				fmt.Fprint(stderr, snapshotUsage)
-				return ExitUsageError
-			}
-
-			// Get Team ID and Key ID from environment
-			teamID := os.Getenv("AMS_TEAM_ID")
-			keyID := os.Getenv("AMS_KEY_ID")
-
-			if teamID == "" || keyID == "" {
-				fmt.Fprintln(stderr, "error: AMS_TEAM_ID and AMS_KEY_ID environment variables required")
-				fmt.Fprintln(stderr, "These identify your Apple Developer team and Maps key")
-				fmt.Fprint(stderr, snapshotUsage)
 				return ExitUsageError
 			}
 
 			// Print token expiry warning
 			fmt.Fprint(stderr, TokenExpiryWarning)
 
-			// Create snapshot signer
+			// Get snapshot credentials
+			teamID := os.Getenv("AMS_TEAM_ID")
+			keyID := os.Getenv("AMS_KEY_ID")
 			privateKey := os.Getenv("AMS_PRIVATE_KEY")
+
 			if privateKey == "" {
-				// Try to load from file
 				keyPath := os.Getenv("AMS_PRIVATE_KEY_PATH")
 				if keyPath != "" {
 					data, err := os.ReadFile(keyPath)
@@ -134,53 +113,38 @@ func NewSnapshotCommand() Command {
 				}
 			}
 
-			if privateKey == "" {
-				fmt.Fprintln(stderr, "error: AMS_PRIVATE_KEY or AMS_PRIVATE_KEY_PATH environment variable required")
+			if teamID == "" || keyID == "" || privateKey == "" {
+				fmt.Fprintln(stderr, "error: AMS_TEAM_ID, AMS_KEY_ID, and AMS_PRIVATE_KEY environment variables required")
 				fmt.Fprintln(stderr, "The snapshot API requires your private key for URL signing")
-				fmt.Fprint(stderr, snapshotUsage)
 				return ExitUsageError
 			}
 
-			signer, err := auth.NewSnapshotSigner(teamID, keyID, privateKey)
-			if err != nil {
-				fmt.Fprintf(stderr, "failed to create snapshot signer: %v\n", err)
-				return ExitUsageError
-			}
-
-			// Build URL parameters
-			params := map[string]string{
-				"teamId": teamID,
-				"keyId":  keyID,
-				"t":      "standard",
-			}
-
-			if format == "jpg" || format == "jpeg" {
-				params["format"] = "jpg"
-			}
-
-			// Build the base URL
-			client, err := httpclient.New()
+			// Create HTTP client
+			httpClient, err := httpclient.New()
 			if err != nil {
 				fmt.Fprintln(stderr, err)
 				return ExitUsageError
 			}
 
-			baseURL := client.BaseURL
-			urlPath := buildSnapshotPath(baseURL, center, zoom, size, params)
-
-			// Sign the URL
-			signature, err := signer.SignURL(urlPath)
+			// Create mapsrv client
+			client := mapsrv.NewClient(httpClient.BaseURL, "")
+			_, err = client.WithSnapshotAuth(teamID, keyID, privateKey)
 			if err != nil {
-				fmt.Fprintf(stderr, "failed to sign URL: %v\n", err)
-				return ExitRuntimeError
+				fmt.Fprintf(stderr, "failed to configure snapshot auth: %v\n", err)
+				return ExitUsageError
 			}
 
-			// Append signature to URL
-			fullURL := fmt.Sprintf("%s&signature=%s", urlPath, signature)
+			// Build snapshot params
+			params := mapsrv.SnapshotParams{
+				Center: center,
+				Zoom:   zoom,
+				Size:   size,
+				Format: format,
+			}
 
-			// Download the image
-			if err := downloadSnapshot(fullURL, output); err != nil {
-				fmt.Fprintf(stderr, "failed to download snapshot: %v\n", err)
+			// Download and save snapshot
+			if err := client.SaveSnapshot(params, output); err != nil {
+				fmt.Fprintf(stderr, "failed to generate snapshot: %v\n", err)
 				return ExitRuntimeError
 			}
 
@@ -188,49 +152,4 @@ func NewSnapshotCommand() Command {
 			return ExitSuccess
 		},
 	}
-}
-
-func buildSnapshotPath(baseURL, center string, zoom int, size string, params map[string]string) string {
-	query := url.Values{}
-	query.Set("center", center)
-	query.Set("z", strconv.Itoa(zoom))
-	query.Set("size", size)
-
-	for key, value := range params {
-		query.Set(key, value)
-	}
-
-	return fmt.Sprintf("%s/api/v1/snapshot?%s", baseURL, query.Encode())
-}
-
-func downloadSnapshot(url, outputPath string) error {
-	resp, err := http.Get(url)
-	if err != nil {
-		return fmt.Errorf("HTTP request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("API returned status %d", resp.StatusCode)
-	}
-
-	// Create output directory if needed
-	dir := filepath.Dir(outputPath)
-	if dir != "." && dir != "" {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return fmt.Errorf("failed to create output directory: %w", err)
-		}
-	}
-
-	// Write image to file
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed to read response: %w", err)
-	}
-
-	if err := os.WriteFile(outputPath, data, 0644); err != nil {
-		return fmt.Errorf("failed to write file: %w", err)
-	}
-
-	return nil
 }

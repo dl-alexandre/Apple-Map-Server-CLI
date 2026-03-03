@@ -11,6 +11,7 @@ import (
 
 	"github.com/dl-alexandre/Apple-Map-Server-CLI/internal/auth"
 	"github.com/dl-alexandre/Apple-Map-Server-CLI/internal/httpclient"
+	"github.com/dl-alexandre/Apple-Map-Server-CLI/internal/pkg/mapsrv"
 )
 
 const unifiedUsage = `Usage:
@@ -92,7 +93,7 @@ func NewUnifiedCommand() Command {
 			}
 
 			// Set up HTTP client
-			client, err := httpclient.New()
+			httpClient, err := httpclient.New()
 			if err != nil {
 				fmt.Fprintln(stderr, err)
 				return ExitUsageError
@@ -110,7 +111,7 @@ func NewUnifiedCommand() Command {
 
 			// Get access token
 			now := time.Now().UTC()
-			token, _, err := accessTokenProvider(cfg, client, now)
+			token, _, err := accessTokenProvider(cfg, httpClient, now)
 			if err != nil {
 				if auth.IsMissingEnv(err) {
 					fmt.Fprintln(stderr, err)
@@ -140,7 +141,7 @@ func NewUnifiedCommand() Command {
 
 			// Execute search
 			limit := 1
-			status, body, err := unifiedSearchRequest(client, token.Value, query, limit, "", searchLat, searchLng, hasCenter, 0, 0, 0, 0, false)
+			status, body, err := unifiedSearchRequest(httpClient, token.Value, query, limit, "", searchLat, searchLng, hasCenter, 0, 0, 0, 0, false)
 			if err != nil {
 				fmt.Fprintf(stderr, "search error: %v\n", err)
 				return ExitRuntimeError
@@ -188,39 +189,29 @@ func NewUnifiedCommand() Command {
 				return ExitSuccess
 			}
 
-			signer, err := auth.NewSnapshotSigner(teamID, keyID, privateKey)
+			// Create mapsrv client with snapshot auth
+			mapsClient := mapsrv.NewClient(httpClient.BaseURL, "")
+			_, err = mapsClient.WithSnapshotAuth(teamID, keyID, privateKey)
 			if err != nil {
-				fmt.Fprintf(stderr, "failed to create snapshot signer: %v\n", err)
+				fmt.Fprintf(stderr, "failed to configure snapshot auth: %v\n", err)
 				return ExitUsageError
 			}
 
-			// Build snapshot URL
-			center := fmt.Sprintf("%.6f,%.6f", lat, lng)
-			size := "800x600"
-
+			// Build output filename if not specified
 			if output == "" {
 				output = fmt.Sprintf("%s_%d.png", sanitizeFilename(placeName), time.Now().Unix())
 			}
 
-			params := map[string]string{
-				"teamId": teamID,
-				"keyId":  keyID,
-				"t":      "standard",
+			// Build snapshot params
+			params := mapsrv.SnapshotParams{
+				Center: fmt.Sprintf("%.6f,%.6f", lat, lng),
+				Zoom:   zoom,
+				Size:   "800x600",
+				Format: "png",
 			}
 
-			baseURL := client.BaseURL
-			urlPath := buildSnapshotPath(baseURL, center, zoom, size, params)
-
-			signature, err := signer.SignURL(urlPath)
-			if err != nil {
-				fmt.Fprintf(stderr, "failed to sign URL: %v\n", err)
-				return ExitRuntimeError
-			}
-
-			fullURL := fmt.Sprintf("%s&signature=%s", urlPath, signature)
-
-			// Download snapshot
-			if err := downloadSnapshot(fullURL, output); err != nil {
+			// Download and save snapshot
+			if err := mapsClient.SaveSnapshot(params, output); err != nil {
 				fmt.Fprintf(stderr, "failed to download snapshot: %v\n", err)
 				return ExitRuntimeError
 			}
