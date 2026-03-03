@@ -40,6 +40,22 @@ All notable changes to this project will be documented in this file.
   - Human-readable file size formatting (B, KB, MB)
   - Cache statistics: total, active, and expired entries
 
+- **Unified Command**: Search + Snapshot in one command
+  - `ams unified <query>` searches and generates snapshot
+  - `--near "lat,lng"`: Search near specific coordinates
+  - `--zoom N`: Control snapshot zoom level
+  - `--output <path>`: Custom output filename
+  - Automatic filename from search result (sanitized)
+  - Graceful degradation without snapshot credentials
+  - 6 comprehensive unified command tests
+
+- **Shell Completion**: Tab completion for bash and zsh
+  - Auto-complete commands and subcommands
+  - Flag completion with descriptions
+  - Dynamic command suggestions
+  - Scripts in `scripts/completion.bash` and `scripts/completion.zsh`
+  - Easy installation instructions
+
 - **Snapshot Command**: Static map image generation (Web Snapshots API)
   - `ams snapshot <center>` generates map images
   - `--zoom N`: Zoom level 1-20 (default: 12)
@@ -67,9 +83,11 @@ All notable changes to this project will be documented in this file.
 - Added 15 cache package test cases for geocode caching functionality
 - Added cache management command tests
 - Added 6 snapshot command tests
+- Added 6 unified command tests
 - Added ECDSA signature generation tests for URL signing
+- Added shell completion scripts (bash and zsh)
 - Subcommand routing from `ams search` to `ams search autocomplete` with clean separation
-- Total test coverage: 75+ test cases across all features
+- Total test coverage: 80+ test cases across all features
 
 ### Usage Notes
 

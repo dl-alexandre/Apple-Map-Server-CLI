@@ -53,6 +53,7 @@ ams search --region "37.8,-122.4,37.7,-122.5" --category fuel "gas stations"
 - `search autocomplete [--near "lat,lng"] [--limit N] [--json] <query>` Get autocomplete suggestions
 - `cache <stats|clear>` Manage geocode cache
 - `snapshot <center> [--zoom N] [--size WxH] [--format png|jpg] [--output <path>]` Generate static map image
+- `unified <query> [--near "lat,lng"] [--zoom N] [--output <path>]` Search and snapshot in one command
 - `version` Show version info
 - `ping [--request-id]` Ping the Apple Map Server
 
@@ -194,6 +195,37 @@ The snapshot API requires additional credentials for URL signing:
 
 These are separate from `AMS_MAPS_TOKEN` and are used to cryptographically sign snapshot URLs.
 
+### Unified (Search + Snapshot)
+
+Combine search and snapshot in one powerful command. Search for a place and automatically generate a map image of the first result.
+
+**Quick map generation:**
+```bash
+ams unified "Golden Gate Bridge"
+ams unified "coffee shops" --near "37.7749,-122.4194"
+ams unified "restaurants" --near-address "San Francisco" --zoom 14 --output sf.png
+```
+
+**How it works:**
+1. Searches for the query using the Search API
+2. Takes the first result's coordinates
+3. Generates a snapshot centered on that location
+4. Saves to a file named after the place
+
+**Customize the output:**
+```bash
+# Change zoom level
+ams unified "airports" --near "London, UK" --zoom 12
+
+# Specify output file
+ams unified "Statue of Liberty" --output liberty.png
+
+# Search near coordinates
+ams unified "pizza" --near "40.7128,-74.0060" --zoom 16
+```
+
+The unified command gracefully handles missing snapshot credentials - if you only have `AMS_MAPS_TOKEN`, it will still perform the search and show you the results (just without generating the image).
+
 ## Environment Variables
 
 - `AMS_MAPS_TOKEN` (**required**) - Maps Token from Apple Developer portal
@@ -214,6 +246,34 @@ When your token expires:
 3. Update your environment: `export AMS_MAPS_TOKEN=<your-new-token>`
 
 The CLI will print a warning before each API call reminding you of this limitation.
+
+## Shell Completion
+
+Tab completion for commands and flags. Scripts are in the `scripts/` directory.
+
+**Bash:**
+```bash
+# Add to your ~/.bashrc or ~/.bash_profile
+source /path/to/Apple-Map-Server-CLI/scripts/completion.bash
+```
+
+**Zsh:**
+```bash
+# Copy to your fpath
+mkdir -p ~/.zsh/completions
+cp /path/to/Apple-Map-Server-CLI/scripts/completion.zsh ~/.zsh/completions/_ams
+
+# Add to your ~/.zshrc
+fpath=(~/.zsh/completions $fpath)
+autoload -U compinit && compinit
+```
+
+**Now you can use tab completion:**
+```bash
+ams <TAB>          # Show all commands
+ams sea<TAB>       # Auto-complete to "search"
+ams search <TAB>   # Show search subcommands and flags
+```
 
 ## Batch Geocode
 

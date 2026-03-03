@@ -11,6 +11,7 @@ Commands:
   search autocomplete [--near "lat,lng"] [--limit N] [--json] <query>                                                                  Get autocomplete suggestions for search queries
   cache <stats|clear>                                                                                                                  Manage geocode cache
   snapshot <center> [--zoom N] [--size WxH] [--format png|jpg] [--output <path>]                                                       Generate a static map image
+  unified <query> [--near "lat,lng"] [--zoom N] [--output <path>]                                                                      Search and generate snapshot in one command
   ping [--request-id]                                                                                                                  Ping the Apple Map Server
   version                                                                                                                              Show version info
 
