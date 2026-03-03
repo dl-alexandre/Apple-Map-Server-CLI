@@ -51,6 +51,7 @@ ams search --region "37.8,-122.4,37.7,-122.5" --category fuel "gas stations"
 - `directions <origin> <destination> [--mode <transport>] [--eta] [--json]` Get directions between locations
 - `search [--near "lat,lng"] [--region "n,e,s,w"] [--near-address <addr>] [--no-cache] [--limit N] [--category <cat>] [--json] <query>` Search for places and POIs
 - `search autocomplete [--near "lat,lng"] [--limit N] [--json] <query>` Get autocomplete suggestions
+- `cache <stats|clear>` Manage geocode cache
 - `version` Show version info
 - `ping [--request-id]` Ping the Apple Map Server
 
@@ -126,6 +127,12 @@ ams search --near-address "123 Main St" --no-cache "pizza"
 - TTL: 30 days (addresses rarely change coordinates)
 - Location: OS-specific cache directory
 - Format: JSON with timestamps
+
+**Cache management:**
+```bash
+ams cache stats   # Show cache statistics
+ams cache clear   # Clear all cached entries
+```
 
 ### Autocomplete
 

@@ -33,6 +33,13 @@ All notable changes to this project will be documented in this file.
   - Stats and management methods for cache inspection
   - 15 comprehensive cache test cases
 
+- **Cache Management Command**: Administrative interface for geocode cache
+  - `ams cache stats`: Display cache location, size, entry count, and TTL
+  - `ams cache clear`: Remove all cached entries with confirmation
+  - Cross-platform cache directory detection
+  - Human-readable file size formatting (B, KB, MB)
+  - Cache statistics: total, active, and expired entries
+
 - **Coordinate Parsing Helpers**: Robust validation for geographic inputs
   - `parseCoordinate("lat,lng")` with latitude/longitude bounds checking
   - `parseBoundingBox("n,e,s,w")` with geometry validation
@@ -41,9 +48,10 @@ All notable changes to this project will be documented in this file.
 ### Engineering
 
 - Added 10 dedicated test cases for the autocomplete command
-- Added 15 cache test cases for geocode caching functionality
+- Added 15 cache package test cases for geocode caching functionality
+- Added cache management command tests
 - Subcommand routing from `ams search` to `ams search autocomplete` with clean separation
-- Total test coverage: 65+ test cases across coordinate parsing, search, autocomplete, and cache
+- Total test coverage: 70+ test cases across coordinate parsing, search, autocomplete, cache, and cache management
 
 ### Usage Notes
 
