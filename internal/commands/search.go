@@ -13,12 +13,13 @@ import (
 	"strings"
 
 	"github.com/dl-alexandre/Apple-Map-Server-CLI/internal/auth"
+	"github.com/dl-alexandre/Apple-Map-Server-CLI/internal/cache"
 	"github.com/dl-alexandre/Apple-Map-Server-CLI/internal/httpclient"
 	"github.com/olekukonko/tablewriter"
 )
 
 const searchUsage = `Usage:
-  ams search [--near "lat,lng"] [--region "n,e,s,w"] [--near-address <addr>] [--limit N] [--category <cat>] [--json] <query>
+  ams search [--near "lat,lng"] [--region "n,e,s,w"] [--near-address <addr>] [--no-cache] [--limit N] [--category <cat>] [--json] <query>
 
 Search for places and points of interest.
 
@@ -27,6 +28,7 @@ Note: Flags must come before the query (positional arguments).
 Examples:
   ams search --near "37.7749,-122.4194" "coffee shops"
   ams search --near-address "San Francisco, CA" --limit 20 restaurants
+  ams search --near-address "123 Main St" --no-cache "pizza"
   ams search --region "37.8,-122.4,37.7,-122.5" --category fuel "gas stations"
 `
 
@@ -54,7 +56,7 @@ var searchRequest = doSearchRequest
 func NewSearchCommand() Command {
 	return Command{
 		Name:      "search",
-		UsageLine: "search [--near \"lat,lng\"] [--region \"n,e,s,w\"] [--near-address <addr>] [--limit N] [--category <cat>] [--json] <query>",
+		UsageLine: "search [--near \"lat,lng\"] [--region \"n,e,s,w\"] [--near-address <addr>] [--no-cache] [--limit N] [--category <cat>] [--json] <query>",
 		Summary:   "Search for places and points of interest",
 		Usage:     searchUsage,
 		Run: func(args []string, stdout, stderr io.Writer) int {
@@ -71,6 +73,7 @@ func NewSearchCommand() Command {
 			limit := fs.Int("limit", 10, "Maximum number of results to return")
 			category := fs.String("category", "", "Filter by POI category (e.g., restaurant, cafe)")
 			jsonOut := fs.Bool("json", false, "Output raw JSON response")
+			noCache := fs.Bool("no-cache", false, "Bypass cache for geocoding")
 			fs.SetOutput(io.Discard)
 			if err := fs.Parse(args); err != nil {
 				if errors.Is(err, flag.ErrHelp) {
@@ -172,6 +175,12 @@ func NewSearchCommand() Command {
 				return ExitRuntimeError
 			}
 
+			// Initialize cache (non-fatal if it fails)
+			var geoCache *cache.Cache
+			if !*noCache {
+				geoCache, _ = cache.New()
+			}
+
 			// Prepare search parameters using validated values
 			searchLat := validatedLat
 			searchLng := validatedLng
@@ -180,54 +189,120 @@ func NewSearchCommand() Command {
 			hasBbox := hasValidatedBbox
 
 			if *nearAddress != "" {
-				// Geocode the address first
-				status, body, err := geocodeRequest(client, token.Value, *nearAddress)
-				if err != nil {
-					fmt.Fprintf(stderr, "error geocoding address: %v\n", err)
-					return ExitRuntimeError
-				}
-				if status < 200 || status > 299 {
-					fmt.Fprintf(stderr, "geocoding failed with status %d\n", status)
-					if len(body) > 0 {
-						fmt.Fprintln(stderr, string(body))
+				// Check cache first if not disabled
+				if geoCache != nil {
+					if lat, lng, ok := geoCache.Get(*nearAddress); ok {
+						searchLat = lat
+						searchLng = lng
+						hasCenter = true
+						fmt.Fprintf(stderr, "Using cached coordinates for '%s'\n", *nearAddress)
+					} else {
+						// Not in cache, need to geocode
+						status, body, err := geocodeRequest(client, token.Value, *nearAddress)
+						if err != nil {
+							fmt.Fprintf(stderr, "error geocoding address: %v\n", err)
+							return ExitRuntimeError
+						}
+						if status < 200 || status > 299 {
+							fmt.Fprintf(stderr, "geocoding failed with status %d\n", status)
+							if len(body) > 0 {
+								fmt.Fprintln(stderr, string(body))
+							}
+							return ExitRuntimeError
+						}
+
+						// Extract coordinates from geocode response
+						var geoResp map[string]any
+						if err := json.Unmarshal(body, &geoResp); err != nil {
+							fmt.Fprintf(stderr, "error parsing geocode response: %v\n", err)
+							return ExitRuntimeError
+						}
+
+						resultsAny, ok := geoResp["results"]
+						if !ok {
+							fmt.Fprintln(stderr, "geocoding returned no results")
+							return ExitRuntimeError
+						}
+
+						results, ok := resultsAny.([]any)
+						if !ok || len(results) == 0 {
+							fmt.Fprintln(stderr, "geocoding returned no results")
+							return ExitRuntimeError
+						}
+
+						firstResult, ok := results[0].(map[string]any)
+						if !ok {
+							fmt.Fprintln(stderr, "error parsing geocode result")
+							return ExitRuntimeError
+						}
+
+						lat, lng, hasCoord := coordinateValues(firstResult)
+						if !hasCoord {
+							fmt.Fprintln(stderr, "geocoding result missing coordinates")
+							return ExitRuntimeError
+						}
+
+						searchLat = lat
+						searchLng = lng
+						hasCenter = true
+
+						// Save to cache
+						geoCache.Set(*nearAddress, lat, lng)
+						if err := geoCache.Save(); err != nil {
+							// Non-fatal: just log the error
+							fmt.Fprintf(stderr, "warning: failed to save geocode cache: %v\n", err)
+						}
 					}
-					return ExitRuntimeError
-				}
+				} else {
+					// No cache or --no-cache flag used, geocode directly
+					status, body, err := geocodeRequest(client, token.Value, *nearAddress)
+					if err != nil {
+						fmt.Fprintf(stderr, "error geocoding address: %v\n", err)
+						return ExitRuntimeError
+					}
+					if status < 200 || status > 299 {
+						fmt.Fprintf(stderr, "geocoding failed with status %d\n", status)
+						if len(body) > 0 {
+							fmt.Fprintln(stderr, string(body))
+						}
+						return ExitRuntimeError
+					}
 
-				// Extract coordinates from geocode response
-				var geoResp map[string]any
-				if err := json.Unmarshal(body, &geoResp); err != nil {
-					fmt.Fprintf(stderr, "error parsing geocode response: %v\n", err)
-					return ExitRuntimeError
-				}
+					// Extract coordinates from geocode response
+					var geoResp map[string]any
+					if err := json.Unmarshal(body, &geoResp); err != nil {
+						fmt.Fprintf(stderr, "error parsing geocode response: %v\n", err)
+						return ExitRuntimeError
+					}
 
-				resultsAny, ok := geoResp["results"]
-				if !ok {
-					fmt.Fprintln(stderr, "geocoding returned no results")
-					return ExitRuntimeError
-				}
+					resultsAny, ok := geoResp["results"]
+					if !ok {
+						fmt.Fprintln(stderr, "geocoding returned no results")
+						return ExitRuntimeError
+					}
 
-				results, ok := resultsAny.([]any)
-				if !ok || len(results) == 0 {
-					fmt.Fprintln(stderr, "geocoding returned no results")
-					return ExitRuntimeError
-				}
+					results, ok := resultsAny.([]any)
+					if !ok || len(results) == 0 {
+						fmt.Fprintln(stderr, "geocoding returned no results")
+						return ExitRuntimeError
+					}
 
-				firstResult, ok := results[0].(map[string]any)
-				if !ok {
-					fmt.Fprintln(stderr, "error parsing geocode result")
-					return ExitRuntimeError
-				}
+					firstResult, ok := results[0].(map[string]any)
+					if !ok {
+						fmt.Fprintln(stderr, "error parsing geocode result")
+						return ExitRuntimeError
+					}
 
-				lat, lng, hasCoord := coordinateValues(firstResult)
-				if !hasCoord {
-					fmt.Fprintln(stderr, "geocoding result missing coordinates")
-					return ExitRuntimeError
-				}
+					lat, lng, hasCoord := coordinateValues(firstResult)
+					if !hasCoord {
+						fmt.Fprintln(stderr, "geocoding result missing coordinates")
+						return ExitRuntimeError
+					}
 
-				searchLat = lat
-				searchLng = lng
-				hasCenter = true
+					searchLat = lat
+					searchLng = lng
+					hasCenter = true
+				}
 			}
 
 			// Build and execute search request

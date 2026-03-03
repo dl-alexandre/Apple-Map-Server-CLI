@@ -49,7 +49,7 @@ ams search --region "37.8,-122.4,37.7,-122.5" --category fuel "gas stations"
 - `geocode [--json] [--limit N] [--file <path>] [--concurrency N] <address>` Geocode an address
 - `reverse <lat>,<lon> [--limit N] [--json]` Reverse geocode coordinates
 - `directions <origin> <destination> [--mode <transport>] [--eta] [--json]` Get directions between locations
-- `search [--near "lat,lng"] [--region "n,e,s,w"] [--near-address <addr>] [--limit N] [--category <cat>] [--json] <query>` Search for places and POIs
+- `search [--near "lat,lng"] [--region "n,e,s,w"] [--near-address <addr>] [--no-cache] [--limit N] [--category <cat>] [--json] <query>` Search for places and POIs
 - `search autocomplete [--near "lat,lng"] [--limit N] [--json] <query>` Get autocomplete suggestions
 - `version` Show version info
 - `ping [--request-id]` Ping the Apple Map Server
@@ -103,6 +103,29 @@ ams search --near "37.7749,-122.4194" --json "pizza"
 ```
 
 **Note:** Flags must come before the query (positional arguments).
+
+### Caching
+
+When using `--near-address`, geocoded coordinates are automatically cached to reduce API calls and improve performance. The cache is stored in your system's cache directory (e.g., `~/.cache/ams/geocode_cache.json` on Linux).
+
+**Cached address search:**
+```bash
+# First call geocodes and caches the result
+ams search --near-address "San Francisco, CA" "restaurants"
+
+# Subsequent calls use cached coordinates (instant!)
+ams search --near-address "San Francisco, CA" "coffee"
+```
+
+**Bypass cache:**
+```bash
+ams search --near-address "123 Main St" --no-cache "pizza"
+```
+
+**Cache details:**
+- TTL: 30 days (addresses rarely change coordinates)
+- Location: OS-specific cache directory
+- Format: JSON with timestamps
 
 ### Autocomplete
 

@@ -25,6 +25,14 @@ All notable changes to this project will be documented in this file.
   - Table output showing suggestion text and completion URLs
   - Routed as subcommand from `ams search` with clean flag separation
 
+- **Cache Package**: Geocode result caching for `--near-address`
+  - Automatic caching to `os.UserCacheDir()/ams/geocode_cache.json`
+  - 30-day TTL for cached coordinates
+  - `--no-cache` flag to bypass cache when needed
+  - Atomic writes to prevent cache corruption
+  - Stats and management methods for cache inspection
+  - 15 comprehensive cache test cases
+
 - **Coordinate Parsing Helpers**: Robust validation for geographic inputs
   - `parseCoordinate("lat,lng")` with latitude/longitude bounds checking
   - `parseBoundingBox("n,e,s,w")` with geometry validation
@@ -33,8 +41,9 @@ All notable changes to this project will be documented in this file.
 ### Engineering
 
 - Added 10 dedicated test cases for the autocomplete command
+- Added 15 cache test cases for geocode caching functionality
 - Subcommand routing from `ams search` to `ams search autocomplete` with clean separation
-- Total test coverage: 50+ test cases across coordinate parsing, search, and autocomplete
+- Total test coverage: 65+ test cases across coordinate parsing, search, autocomplete, and cache
 
 ### Usage Notes
 

@@ -2,15 +2,15 @@ Usage:
   ams <command> [options]
 
 Commands:
-  help [command]                                                                                                          Show help for a command
-  auth token [--raw|--json]                                                                                               Exchange Maps token for access token
-  geocode [--json] [--limit N] [--file <path>] [--concurrency N] <address>                                                Geocode an address
-  reverse <lat>,<lon> [--limit N] [--json]                                                                                Reverse geocode coordinates
-  directions <origin> <destination> [--mode <transport>] [--eta] [--json]                                                 Get directions between locations
-  search [--near "lat,lng"] [--region "n,e,s,w"] [--near-address <addr>] [--limit N] [--category <cat>] [--json] <query>  Search for places and points of interest
-  search autocomplete [--near "lat,lng"] [--limit N] [--json] <query>                                                     Get autocomplete suggestions for search queries
-  ping [--request-id]                                                                                                     Ping the Apple Map Server
-  version                                                                                                                 Show version info
+  help [command]                                                                                                                       Show help for a command
+  auth token [--raw|--json]                                                                                                            Exchange Maps token for access token
+  geocode [--json] [--limit N] [--file <path>] [--concurrency N] <address>                                                             Geocode an address
+  reverse <lat>,<lon> [--limit N] [--json]                                                                                             Reverse geocode coordinates
+  directions <origin> <destination> [--mode <transport>] [--eta] [--json]                                                              Get directions between locations
+  search [--near "lat,lng"] [--region "n,e,s,w"] [--near-address <addr>] [--no-cache] [--limit N] [--category <cat>] [--json] <query>  Search for places and points of interest
+  search autocomplete [--near "lat,lng"] [--limit N] [--json] <query>                                                                  Get autocomplete suggestions for search queries
+  ping [--request-id]                                                                                                                  Ping the Apple Map Server
+  version                                                                                                                              Show version info
 
 Exit codes:
   0 success
