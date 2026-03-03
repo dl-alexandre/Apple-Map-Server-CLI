@@ -14,6 +14,8 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	versionCmd := commands.NewVersionCommand()
 	pingCmd := commands.NewPingCommand()
 	reverseCmd := commands.NewReverseCommand()
+	directionsCmd := commands.NewDirectionsCommand()
+	searchCmd := commands.NewSearchCommand()
 
 	var ordered []commands.Command
 	lookup := map[string]commands.Command{}
@@ -29,7 +31,7 @@ func Run(args []string, stdout, stderr io.Writer) int {
 
 	helpCmd := commands.NewHelpCommand(usage, lookupFn)
 
-	ordered = []commands.Command{helpCmd, authTokenCmd, geocodeCmd, reverseCmd, pingCmd, versionCmd}
+	ordered = []commands.Command{helpCmd, authTokenCmd, geocodeCmd, reverseCmd, directionsCmd, searchCmd, pingCmd, versionCmd}
 	for _, cmd := range ordered {
 		lookup[cmd.Name] = cmd
 	}

@@ -17,6 +17,9 @@ const authTokenUsage = `Usage:
   ams auth token [--raw|--json]
 
 Exchange an Apple Maps Server API access token using a Maps token.
+
+WARNING: Apple Maps Server API tokens expire every 7 days and must be
+manually regenerated at https://developer.apple.com/maps/server-api/
 `
 
 var accessTokenProvider = auth.GetAccessToken
@@ -70,6 +73,10 @@ func NewAuthTokenCommand() Command {
 			}
 
 			now := nowFunc().UTC()
+
+			// Print token expiry warning before fetching
+			fmt.Fprint(stderr, TokenExpiryWarning)
+
 			token, source, err := accessTokenProvider(cfg, client, now)
 			if err != nil {
 				if auth.IsMissingEnv(err) {

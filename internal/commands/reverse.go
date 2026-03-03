@@ -79,6 +79,9 @@ func NewReverseCommand() Command {
 				return ExitUsageError
 			}
 
+			// Print token expiry warning
+			fmt.Fprint(stderr, TokenExpiryWarning)
+
 			now := nowFunc().UTC()
 			token, _, err := accessTokenProvider(cfg, client, now)
 			if err != nil {

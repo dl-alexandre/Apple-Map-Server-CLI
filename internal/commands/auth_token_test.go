@@ -30,8 +30,9 @@ func TestAuthTokenRawOutput(t *testing.T) {
 	if code != ExitSuccess {
 		t.Fatalf("expected exit %d, got %d", ExitSuccess, code)
 	}
-	if stderr.Len() != 0 {
-		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	// stderr should contain the token expiry warning
+	if !strings.Contains(stderr.String(), "WARNING: Apple Maps Server API tokens expire every 7 days") {
+		t.Fatalf("expected stderr to contain token expiry warning, got %q", stderr.String())
 	}
 	if stdout.String() != "token-raw\n" {
 		t.Fatalf("expected raw token, got %q", stdout.String())
@@ -58,8 +59,9 @@ func TestAuthTokenJSONOutput(t *testing.T) {
 	if code != ExitSuccess {
 		t.Fatalf("expected exit %d, got %d", ExitSuccess, code)
 	}
-	if stderr.Len() != 0 {
-		t.Fatalf("expected empty stderr, got %q", stderr.String())
+	// stderr should contain the token expiry warning
+	if !strings.Contains(stderr.String(), "WARNING: Apple Maps Server API tokens expire every 7 days") {
+		t.Fatalf("expected stderr to contain token expiry warning, got %q", stderr.String())
 	}
 
 	var payload map[string]any
