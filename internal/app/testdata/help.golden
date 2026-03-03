@@ -4,6 +4,7 @@ Usage:
 Commands:
   help [command]                                                                                                                       Show help for a command
   auth token [--raw|--json]                                                                                                            Exchange Maps token for access token
+  auth check [--token <token>]                                                                                                         Check token status and expiry
   geocode [--json] [--limit N] [--file <path>] [--concurrency N] <address>                                                             Geocode an address
   reverse <lat>,<lon> [--limit N] [--json]                                                                                             Reverse geocode coordinates
   directions <origin> <destination> [--mode <transport>] [--eta] [--json]                                                              Get directions between locations
