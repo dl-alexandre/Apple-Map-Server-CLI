@@ -77,6 +77,14 @@ All notable changes to this project will be documented in this file.
   - `parseBoundingBox("n,e,s,w")` with geometry validation
   - 33 comprehensive test cases covering edge cases
 
+### Documentation
+
+- **Quick Start Hero Section**: Prominent README section showcasing unified command
+  - One-command example showing search + snapshot workflow
+  - Installation and token setup instructions
+  - Progressive disclosure: simple → advanced examples
+  - Clear value proposition for new users
+
 ### Engineering
 
 - Added 10 dedicated test cases for the autocomplete command

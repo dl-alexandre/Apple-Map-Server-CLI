@@ -4,6 +4,31 @@
 
 **⚠️ IMPORTANT: Apple Maps Server API tokens expire every 7 days.** When your token expires, you must manually generate a new one at https://developer.apple.com/maps/server-api/
 
+## 🚀 Quick Start
+
+The easiest way to get started? Use the **unified** command—search for any place and instantly generate a map image:
+
+```bash
+# Install
+$ go install github.com/dl-alexandre/Apple-Map-Server-CLI/cmd/ams@latest
+
+# Set your token (get one from Apple Developer Portal)
+$ export AMS_MAPS_TOKEN="your-token-here"
+
+# Search for a place and generate a snapshot in one command!
+$ ams unified "Golden Gate Bridge"
+Found: Golden Gate Bridge (37.819900, -122.478300)
+✓ Snapshot saved to: Golden_Gate_Bridge_1234567890.png
+
+# Search near a location with custom zoom
+$ ams unified "coffee shops" --near "37.7749,-122.4194" --zoom 16
+
+# Or use traditional commands for more control
+$ ams search --near "37.7749,-122.4194" "restaurants"
+$ ams directions "San Francisco" "Palo Alto" --mode car
+$ ams geocode "1 Infinite Loop, Cupertino, CA"
+```
+
 ## Install
 
 ```bash
