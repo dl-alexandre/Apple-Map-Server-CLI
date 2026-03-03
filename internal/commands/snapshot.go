@@ -38,8 +38,6 @@ type SnapshotConfig struct {
 	Output string
 }
 
-var snapshotRequest = doSnapshotRequest
-
 func NewSnapshotCommand() Command {
 	return Command{
 		Name:      "snapshot",
@@ -57,7 +55,7 @@ func NewSnapshotCommand() Command {
 			center := args[0]
 
 			// Parse flags
-			var zoom int = 12
+			zoom := 12
 			size := "600x400"
 			format := "png"
 			output := ""
@@ -181,7 +179,7 @@ func NewSnapshotCommand() Command {
 			fullURL := fmt.Sprintf("%s&signature=%s", urlPath, signature)
 
 			// Download the image
-			if err := downloadSnapshot(fullURL, output, stderr); err != nil {
+			if err := downloadSnapshot(fullURL, output); err != nil {
 				fmt.Fprintf(stderr, "failed to download snapshot: %v\n", err)
 				return ExitRuntimeError
 			}
@@ -205,7 +203,7 @@ func buildSnapshotPath(baseURL, center string, zoom int, size string, params map
 	return fmt.Sprintf("%s/api/v1/snapshot?%s", baseURL, query.Encode())
 }
 
-func downloadSnapshot(url, outputPath string, stderr io.Writer) error {
+func downloadSnapshot(url, outputPath string) error {
 	resp, err := http.Get(url)
 	if err != nil {
 		return fmt.Errorf("HTTP request failed: %w", err)
@@ -235,18 +233,4 @@ func downloadSnapshot(url, outputPath string, stderr io.Writer) error {
 	}
 
 	return nil
-}
-
-func doSnapshotRequest(url string) ([]byte, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API returned status %d", resp.StatusCode)
-	}
-
-	return io.ReadAll(resp.Body)
 }

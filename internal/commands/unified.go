@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -30,7 +29,6 @@ Examples:
 `
 
 var unifiedSearchRequest = doSearchRequest
-var unifiedSnapshotRequest = doSnapshotRequest
 
 func NewUnifiedCommand() Command {
 	return Command{
@@ -47,10 +45,10 @@ func NewUnifiedCommand() Command {
 			}
 
 			// Simple flag parsing
-			var query string
-			var near string
-			var zoom int = 14
-			var output string = ""
+			query := ""
+			near := ""
+			zoom := 14
+			output := ""
 
 			// Find where flags start
 			queryEnd := len(args)
@@ -222,7 +220,7 @@ func NewUnifiedCommand() Command {
 			fullURL := fmt.Sprintf("%s&signature=%s", urlPath, signature)
 
 			// Download snapshot
-			if err := downloadSnapshot(fullURL, output, stderr); err != nil {
+			if err := downloadSnapshot(fullURL, output); err != nil {
 				fmt.Fprintf(stderr, "failed to download snapshot: %v\n", err)
 				return ExitRuntimeError
 			}
@@ -249,18 +247,4 @@ func sanitizeFilename(name string) string {
 		"|", "_",
 	)
 	return replacer.Replace(name)
-}
-
-func doUnifiedSnapshotRequest(url string) ([]byte, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API returned status %d", resp.StatusCode)
-	}
-
-	return io.ReadAll(resp.Body)
 }

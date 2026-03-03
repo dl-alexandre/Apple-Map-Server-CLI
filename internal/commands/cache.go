@@ -144,33 +144,3 @@ func formatBytes(bytes int64) string {
 		return fmt.Sprintf("%d B", bytes)
 	}
 }
-
-// Mock functions for testing
-var (
-	cacheNew = cache.New
-	osStat   = os.Stat
-	osRemove = os.Remove
-)
-
-// CacheStatsTestable wraps cache functionality for testing
-type CacheStatsTestable struct {
-	PathFunc  func() string
-	StatsFunc func() (total, expired int)
-	ClearFunc func()
-	SaveFunc  func() error
-}
-
-func TestableCacheStats(c *cache.Cache) CacheStatsTestable {
-	return CacheStatsTestable{
-		PathFunc:  c.Path,
-		StatsFunc: c.Stats,
-		ClearFunc: c.Clear,
-		SaveFunc:  c.Save,
-	}
-}
-
-// Restore cacheNew after tests
-func init() {
-	// Ensure cacheNew is always available
-	cacheNew = cache.New
-}
