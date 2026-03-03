@@ -8,6 +8,7 @@ Commands:
   reverse <lat>,<lon> [--limit N] [--json]                                                                                Reverse geocode coordinates
   directions <origin> <destination> [--mode <transport>] [--eta] [--json]                                                 Get directions between locations
   search [--near "lat,lng"] [--region "n,e,s,w"] [--near-address <addr>] [--limit N] [--category <cat>] [--json] <query>  Search for places and points of interest
+  search autocomplete [--near "lat,lng"] [--limit N] [--json] <query>                                                     Get autocomplete suggestions for search queries
   ping [--request-id]                                                                                                     Ping the Apple Map Server
   version                                                                                                                 Show version info
 

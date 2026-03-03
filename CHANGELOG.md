@@ -17,6 +17,14 @@ All notable changes to this project will be documented in this file.
   - Table output with distance calculation when using `--near`
   - Mutual exclusivity enforced for geographic bounds
 
+- **Autocomplete Command (`ams search autocomplete`)**: Full support for `/v1/searchAutocomplete`
+  - Get predictive search suggestions for partial queries
+  - `--near "lat,lng"`: Location bias for more relevant suggestions
+  - `--limit N`: Limit suggestions (default: 10)
+  - `--json`: Machine-readable JSON output with `displayLines` and `completionUrl`
+  - Table output showing suggestion text and completion URLs
+  - Routed as subcommand from `ams search` with clean flag separation
+
 - **Coordinate Parsing Helpers**: Robust validation for geographic inputs
   - `parseCoordinate("lat,lng")` with latitude/longitude bounds checking
   - `parseBoundingBox("n,e,s,w")` with geometry validation
@@ -24,11 +32,9 @@ All notable changes to this project will be documented in this file.
 
 ### Engineering
 
-- Added 10 dedicated test cases for the search command
-- Haversine distance calculation for proximity display in table output
-- Token expiry warning integration consistent with other commands
-- Updated golden test files to reflect new command in help output
-- Total test coverage: 40+ test cases across coordinate parsing and search functionality
+- Added 10 dedicated test cases for the autocomplete command
+- Subcommand routing from `ams search` to `ams search autocomplete` with clean separation
+- Total test coverage: 50+ test cases across coordinate parsing, search, and autocomplete
 
 ### Usage Notes
 

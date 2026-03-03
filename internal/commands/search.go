@@ -58,6 +58,12 @@ func NewSearchCommand() Command {
 		Summary:   "Search for places and points of interest",
 		Usage:     searchUsage,
 		Run: func(args []string, stdout, stderr io.Writer) int {
+			// Check for subcommand: ams search autocomplete <query>
+			if len(args) > 0 && args[0] == "autocomplete" {
+				cmd := NewAutocompleteCommand()
+				return cmd.Run(args[1:], stdout, stderr)
+			}
+
 			fs := flag.NewFlagSet("search", flag.ContinueOnError)
 			near := fs.String("near", "", "Center point for search as 'lat,lng'")
 			region := fs.String("region", "", "Bounding box as 'north,east,south,west'")

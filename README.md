@@ -50,6 +50,7 @@ ams search --region "37.8,-122.4,37.7,-122.5" --category fuel "gas stations"
 - `reverse <lat>,<lon> [--limit N] [--json]` Reverse geocode coordinates
 - `directions <origin> <destination> [--mode <transport>] [--eta] [--json]` Get directions between locations
 - `search [--near "lat,lng"] [--region "n,e,s,w"] [--near-address <addr>] [--limit N] [--category <cat>] [--json] <query>` Search for places and POIs
+- `search autocomplete [--near "lat,lng"] [--limit N] [--json] <query>` Get autocomplete suggestions
 - `version` Show version info
 - `ping [--request-id]` Ping the Apple Map Server
 
@@ -102,6 +103,34 @@ ams search --near "37.7749,-122.4194" --json "pizza"
 ```
 
 **Note:** Flags must come before the query (positional arguments).
+
+### Autocomplete
+
+Get predictive search suggestions before completing a full search. Great for building search-as-you-type interfaces.
+
+**Basic autocomplete:**
+```bash
+ams search autocomplete "starbu"
+```
+
+**Autocomplete with location bias:**
+```bash
+ams search autocomplete --near "37.7749,-122.4194" "pizza"
+```
+
+**Get more suggestions:**
+```bash
+ams search autocomplete --limit 20 "coffee"
+```
+
+**JSON output:**
+```bash
+ams search autocomplete --json "taco"
+```
+
+The autocomplete response includes:
+- `displayLines`: The suggestion text to show to users (usually 1-2 lines)
+- `completionUrl`: A URL path to fetch full POI details if the user selects this suggestion
 
 ## Environment Variables
 
