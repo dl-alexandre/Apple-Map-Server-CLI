@@ -9,6 +9,9 @@ import (
 )
 
 func Run(args []string, stdout, stderr io.Writer) int {
+	// Perform automatic update check in background (non-blocking)
+	commands.AutoUpdateCheck()
+
 	authTokenCmd := commands.NewAuthTokenCommand()
 	authCheckCmd := commands.NewAuthCheckCommand()
 	geocodeCmd := commands.NewGeocodeCommand()
@@ -22,6 +25,7 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	snapshotCmd := commands.NewSnapshotCommand()
 	unifiedCmd := commands.NewUnifiedCommand()
 	configCmd := commands.NewConfigCommand()
+	checkUpdateCmd := commands.NewCheckUpdateCommand()
 
 	var ordered []commands.Command
 	lookup := map[string]commands.Command{}
@@ -37,7 +41,7 @@ func Run(args []string, stdout, stderr io.Writer) int {
 
 	helpCmd := commands.NewHelpCommand(usage, lookupFn)
 
-	ordered = []commands.Command{helpCmd, authTokenCmd, authCheckCmd, geocodeCmd, reverseCmd, directionsCmd, searchCmd, autocompleteCmd, cacheCmd, snapshotCmd, unifiedCmd, configCmd, pingCmd, versionCmd}
+	ordered = []commands.Command{helpCmd, authTokenCmd, authCheckCmd, geocodeCmd, reverseCmd, directionsCmd, searchCmd, autocompleteCmd, cacheCmd, snapshotCmd, unifiedCmd, configCmd, pingCmd, checkUpdateCmd, versionCmd}
 	for _, cmd := range ordered {
 		lookup[cmd.Name] = cmd
 	}

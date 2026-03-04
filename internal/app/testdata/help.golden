@@ -15,6 +15,7 @@ Commands:
   unified <query> [--near "lat,lng"] [--zoom N] [--output <path>]                                                                      Search and generate snapshot in one command
   config <get|set|list|path> [args...]                                                                                                 Manage CLI configuration
   ping [--request-id]                                                                                                                  Ping the Apple Map Server
+  check-update                                                                                                                         Check for available updates
   version                                                                                                                              Show version info
 
 Exit codes:
