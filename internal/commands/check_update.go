@@ -62,7 +62,7 @@ func NewCheckUpdateCommand() Command {
 
 			// Force refresh by clearing cache if requested
 			if force {
-				cli.ClearUpdateCache()
+				_ = cli.ClearUpdateCache() // #nosec G104 - best effort, failure is non-critical
 			}
 
 			// Check for updates

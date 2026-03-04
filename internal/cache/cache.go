@@ -38,7 +38,7 @@ func New() (*Cache, error) {
 	}
 
 	appCacheDir := filepath.Join(cacheDir, "ams")
-	if err := os.MkdirAll(appCacheDir, 0755); err != nil {
+	if err := os.MkdirAll(appCacheDir, 0750); err != nil {
 		return nil, fmt.Errorf("create cache directory: %w", err)
 	}
 
@@ -127,7 +127,7 @@ func (c *Cache) Save() error {
 
 	// Write atomically to avoid corruption
 	tmpPath := path + ".tmp"
-	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
+	if err := os.WriteFile(tmpPath, data, 0600); err != nil { // #nosec G306 - cache file needs user-only access
 		return fmt.Errorf("write cache temp file: %w", err)
 	}
 
@@ -142,7 +142,7 @@ func (c *Cache) Save() error {
 // load reads the cache from disk
 func (c *Cache) load() error {
 	path := filepath.Join(c.dir, CacheFileName)
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 - path is constructed from trusted cache directory
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil // No cache yet, that's fine

@@ -117,12 +117,12 @@ func (c *Config) Save() error {
 
 	// Ensure directory exists
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil {
 		return fmt.Errorf("creating config directory: %w", err)
 	}
 
 	// Marshal to YAML
-	data, err := yaml.Marshal(c)
+	data, err := yaml.Marshal(c) // #nosec G117 - intentionally serializing config including private_key to user config file
 	if err != nil {
 		return fmt.Errorf("marshaling config: %w", err)
 	}

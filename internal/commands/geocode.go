@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -144,7 +145,14 @@ func NewGeocodeCommand() Command {
 }
 
 func runGeocodeBatch(path string, limit int, concurrency int, jsonOut bool, token string, client *httpclient.Client, stdout, stderr io.Writer) int {
-	file, err := os.Open(path)
+	// Validate path to prevent directory traversal - path must be within current directory or absolute
+	cleanPath := filepath.Clean(path)
+	if strings.Contains(cleanPath, "..") {
+		fmt.Fprintf(stderr, "Error: path contains invalid characters: %s\n", path)
+		return ExitUsageError
+	}
+
+	file, err := os.Open(cleanPath) // #nosec G304 - path is cleaned and validated above
 	if err != nil {
 		fmt.Fprintln(stderr, err)
 		fmt.Fprint(stderr, geocodeUsage)

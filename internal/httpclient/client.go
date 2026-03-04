@@ -116,8 +116,8 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 			lastErr = err
 		} else {
 			lastErr = fmt.Errorf("request failed with status %d", resp.StatusCode)
-			io.Copy(io.Discard, resp.Body)
-			resp.Body.Close()
+			_, _ = io.Copy(io.Discard, resp.Body) // #nosec G104 - best effort cleanup
+			_ = resp.Body.Close()                 // #nosec G104 - best effort cleanup
 		}
 
 		if attempt == retries {

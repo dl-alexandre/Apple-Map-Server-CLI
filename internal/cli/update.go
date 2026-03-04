@@ -190,7 +190,7 @@ func compareVersions(v1, v2 string) int {
 			if idx := strings.IndexAny(part, "-"); idx != -1 {
 				part = part[:idx]
 			}
-			fmt.Sscanf(part, "%d", &num1)
+			_, _ = fmt.Sscanf(part, "%d", &num1) // #nosec G104 - best effort parsing
 		}
 
 		if i < len(parts2) {
@@ -198,7 +198,7 @@ func compareVersions(v1, v2 string) int {
 			if idx := strings.IndexAny(part, "-"); idx != -1 {
 				part = part[:idx]
 			}
-			fmt.Sscanf(part, "%d", &num2)
+			_, _ = fmt.Sscanf(part, "%d", &num2) // #nosec G104 - best effort parsing
 		}
 
 		if num1 < num2 {
@@ -279,7 +279,7 @@ func cacheUpdate(info UpdateInfo) {
 	}
 
 	appCacheDir := fmt.Sprintf("%s/ams", cacheDir)
-	if err := os.MkdirAll(appCacheDir, 0755); err != nil {
+	if err := os.MkdirAll(appCacheDir, 0750); err != nil {
 		return
 	}
 
@@ -295,7 +295,7 @@ func cacheUpdate(info UpdateInfo) {
 		return
 	}
 
-	os.WriteFile(cacheFile, data, 0644)
+	_ = os.WriteFile(cacheFile, data, 0600) // #nosec G104 G306 - best effort caching with restricted permissions
 }
 
 // getCachedUpdate retrieves cached update info if it exists and is not expired
@@ -306,7 +306,7 @@ func getCachedUpdate() *UpdateInfo {
 	}
 
 	cacheFile := fmt.Sprintf("%s/ams/%s", cacheDir, cacheFileName)
-	data, err := os.ReadFile(cacheFile)
+	data, err := os.ReadFile(cacheFile) // #nosec G304 - path is constructed from trusted cache directory
 	if err != nil {
 		return nil
 	}
@@ -321,7 +321,7 @@ func getCachedUpdate() *UpdateInfo {
 
 	// Check if expired
 	if time.Since(entry.Timestamp) > cacheTTL {
-		os.Remove(cacheFile)
+		_ = os.Remove(cacheFile) // #nosec G104 - best effort cleanup
 		return nil
 	}
 
