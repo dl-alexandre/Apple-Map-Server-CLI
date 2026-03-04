@@ -320,7 +320,11 @@ func isTerminalWriter(w io.Writer) bool {
 	if !ok {
 		return false
 	}
-	return term.IsTerminal(int(file.Fd()))
+	fd := file.Fd()
+	// Safe conversion: on supported platforms, file descriptor values are small
+	// G115: uintptr -> int conversion is safe for standard file descriptors (0, 1, 2)
+	// #nosec G115 - file.Fd() returns small values for stdin/stdout/stderr
+	return term.IsTerminal(int(fd))
 }
 
 func formatJSON(body []byte) (string, bool) {

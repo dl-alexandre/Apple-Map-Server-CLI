@@ -13,6 +13,7 @@ import (
 	"github.com/dl-alexandre/Apple-Map-Server-CLI/internal/httpclient"
 )
 
+// #nosec G101 - This is documentation text, not hardcoded credentials
 const authTokenUsage = `Usage:
   ams auth token [--raw|--json]
 

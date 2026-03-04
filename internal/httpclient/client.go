@@ -103,6 +103,10 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 
 	var lastErr error
 	for attempt := 0; attempt <= retries; attempt++ {
+		// SSRF protection: URL is validated in NewRequest via resolveBaseURL
+		// which enforces absolute HTTPS URLs only. Path construction uses
+		// url.Parse and ResolveReference which are safe.
+		// #nosec G704 - URL is validated before request creation
 		resp, err := c.HTTP.Do(req)
 		if err == nil && !shouldRetry(resp.StatusCode) {
 			return resp, nil

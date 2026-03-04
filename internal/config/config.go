@@ -71,6 +71,9 @@ func (c *Config) loadFromFile() error {
 		return err
 	}
 
+	// Path is safely constructed from os.UserConfigDir() via ConfigFilePath()
+	// and is not user-controlled, so path traversal is not possible.
+	// #nosec G304 - Config file path is safely constructed
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err

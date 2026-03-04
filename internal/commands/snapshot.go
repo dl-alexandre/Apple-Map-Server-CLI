@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -104,7 +105,14 @@ func NewSnapshotCommand() Command {
 			if privateKey == "" {
 				keyPath := os.Getenv("AMS_PRIVATE_KEY_PATH")
 				if keyPath != "" {
-					data, err := os.ReadFile(keyPath)
+					// Validate path to prevent directory traversal
+					cleanPath := filepath.Clean(keyPath)
+					if strings.Contains(cleanPath, "..") {
+						fmt.Fprintf(stderr, "error: invalid private key path (path traversal detected)\n")
+						return ExitUsageError
+					}
+					// #nosec G703 - Path is validated above to prevent traversal
+					data, err := os.ReadFile(cleanPath)
 					if err != nil {
 						fmt.Fprintf(stderr, "failed to read private key: %v\n", err)
 						return ExitUsageError
