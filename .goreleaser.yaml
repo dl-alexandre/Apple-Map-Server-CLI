@@ -45,7 +45,7 @@ brews:
     repository:
       owner: dl-alexandre
       name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
     directory: Formula
     homepage: https://github.com/dl-alexandre/Apple-Map-Server-CLI
     description: Apple Map Server CLI
