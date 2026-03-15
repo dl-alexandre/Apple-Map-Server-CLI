@@ -54,3 +54,22 @@ brews:
       system "#{bin}/ams", "version"
     install: |
       bin.install "ams"
+
+# Scoop configuration for Windows
+scoops:
+  - repository:
+      owner: dl-alexandre
+      name: scoop-bucket
+      token: "{{ .Env.SCOOP_BUCKET_TOKEN }}"
+      branch: main
+      pull_request:
+        enabled: false
+    commit_author:
+      name: goreleaserbot
+      email: goreleaser@carlosbecker.com
+    commit_msg_template: "Scoop update for {{ .ProjectName }} version {{ .Tag }}"
+    directory: bucket
+    description: "CLI for Apple Map Server API"
+    homepage: "https://github.com/dl-alexandre/Apple-Map-Server-CLI"
+    license: MIT
+    skip_upload: "{{ if index .Env \"SCOOP_BUCKET_TOKEN\" }}false{{ else }}true{{ end }}"
