@@ -31,7 +31,7 @@ archives:
 
 checksum:
   name_template: "checksums.txt"
-  algorithm: sha256
+  algorithm: blake3
 
 release:
   github:
@@ -47,16 +47,38 @@ brews:
       owner: dl-alexandre
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+      branch: master
+      pull_request:
+        enabled: false
+    commit_author:
+      name: goreleaserbot
+      email: bot@dl-alexandre.com
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
     directory: Formula
     homepage: https://github.com/dl-alexandre/Apple-Map-Server-CLI
     description: Apple Map Server CLI
     license: MIT
+    skip_upload: "{{ if index .Env \"HOMEBREW_TAP_TOKEN\" }}false{{ else }}true{{ end }}"
     test: |
       system "#{bin}/ams", "version"
     install: |
       bin.install "ams"
 
-# Scoop configuration for Windows
+flatpak:
+  - app_id: net.ddns.dl-alexandre.AMSCLI
+    runtime: org.freedesktop.Platform
+    runtime_version: "24.08"
+    sdk: org.freedesktop.Sdk
+    finish_args:
+      - --share=network
+      - --filesystem=home
+
+srpm:
+  enabled: true
+  summary: "Apple Map Server CLI"
+  license: MIT
+  url: https://github.com/dl-alexandre/Apple-Map-Server-CLI
+
 scoops:
   - repository:
       owner: dl-alexandre
@@ -67,7 +89,7 @@ scoops:
         enabled: false
     commit_author:
       name: goreleaserbot
-      email: goreleaser@carlosbecker.com
+      email: bot@dl-alexandre.com
     commit_msg_template: "Scoop update for {{ .ProjectName }} version {{ .Tag }}"
     directory: bucket
     description: "CLI for Apple Map Server API"
