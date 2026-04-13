@@ -33,6 +33,8 @@ func NewES256Signer(privateKeyPath, teamID string) (*ES256Signer, error) {
 		return nil, fmt.Errorf("private key path is required")
 	}
 
+	// #nosec G304 - Private key path is intentionally configurable via env var/CLI flag
+	// This is legitimate for CLI tools where users specify their own key file location
 	keyData, err := os.ReadFile(privateKeyPath)
 	if err != nil {
 		return nil, fmt.Errorf("reading private key file: %w", err)
