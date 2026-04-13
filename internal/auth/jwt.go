@@ -106,6 +106,13 @@ func base64URLDecode(s string) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(s)
 }
 
+// base64URLEncode encodes bytes to base64url (no padding)
+func base64URLEncode(data []byte) string {
+	encoded := base64.URLEncoding.EncodeToString(data)
+	// Remove padding
+	return strings.TrimRight(encoded, "=")
+}
+
 // FormatDuration formats a duration in a human-readable way
 func FormatDuration(d time.Duration) string {
 	if d < 0 {

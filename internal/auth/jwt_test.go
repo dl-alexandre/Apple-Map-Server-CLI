@@ -1,9 +1,7 @@
 package auth
 
 import (
-	"encoding/base64"
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 )
@@ -201,12 +199,4 @@ func TestFormatDuration(t *testing.T) {
 			}
 		})
 	}
-}
-
-// Helper for encoding in tests
-func base64URLEncode(data []byte) string {
-	s := base64.URLEncoding.EncodeToString(data)
-	// Remove padding
-	s = strings.TrimRight(s, "=")
-	return s
 }

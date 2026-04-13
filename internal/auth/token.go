@@ -41,8 +41,10 @@ func resetAccessTokenCache() {
 }
 
 func GetAccessToken(cfg Config, client *httpclient.Client, now time.Time) (Token, AccessTokenSource, error) {
-	if strings.TrimSpace(cfg.MapsToken) == "" {
-		return Token{}, "", MissingEnvError{Missing: []string{"AMS_MAPS_TOKEN"}}
+	// Get the Maps token (legacy or generate from ES256)
+	mapsToken, err := cfg.GetMapsToken()
+	if err != nil {
+		return Token{}, "", err
 	}
 
 	if client == nil {
@@ -68,7 +70,7 @@ func GetAccessToken(cfg Config, client *httpclient.Client, now time.Time) (Token
 	}
 	accessTokenCache.Unlock()
 
-	token, err := exchangeMapsToken(cfg, client, now)
+	token, err := exchangeMapsToken(mapsToken, client, now)
 	if err != nil {
 		return Token{}, "", err
 	}
@@ -80,12 +82,12 @@ func GetAccessToken(cfg Config, client *httpclient.Client, now time.Time) (Token
 	return token, AccessTokenFetched, nil
 }
 
-func exchangeMapsToken(cfg Config, client *httpclient.Client, now time.Time) (Token, error) {
+func exchangeMapsToken(mapsToken string, client *httpclient.Client, now time.Time) (Token, error) {
 	req, err := client.NewRequest(http.MethodPost, "/v1/token", nil, nil)
 	if err != nil {
 		return Token{}, err
 	}
-	req.Header.Set("Authorization", "Bearer "+cfg.MapsToken)
+	req.Header.Set("Authorization", "Bearer "+mapsToken)
 
 	resp, err := client.Do(req)
 	if err != nil {
