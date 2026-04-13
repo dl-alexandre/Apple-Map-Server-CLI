@@ -39,7 +39,7 @@ func LoadConfigFromEnv() (Config, error) {
 	hasPrivateKey := strings.TrimSpace(cfg.PrivateKeyPath) != ""
 
 	// If we have neither, require at least the legacy token for backwards compatibility
-	if !hasLegacyToken && !(hasTeamID && hasPrivateKey) {
+	if !hasLegacyToken && (!hasTeamID || !hasPrivateKey) {
 		var missing []string
 		if !hasLegacyToken {
 			// For new users, suggest the ES256 approach
