@@ -64,20 +64,7 @@ brews:
     install: |
       bin.install "ams"
 
-flatpak:
-  - app_id: net.ddns.dl-alexandre.AMSCLI
-    runtime: org.freedesktop.Platform
-    runtime_version: "24.08"
-    sdk: org.freedesktop.Sdk
-    finish_args:
-      - --share=network
-      - --filesystem=home
 
-srpm:
-  enabled: true
-  summary: "Apple Map Server CLI"
-  license: MIT
-  url: https://github.com/dl-alexandre/Apple-Map-Server-CLI
 
 scoops:
   - repository:
