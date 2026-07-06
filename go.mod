@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/olekukonko/tablewriter v1.1.4
-	github.com/schollz/progressbar/v3 v3.19.0
+	github.com/schollz/progressbar/v3 v3.19.1
 	golang.org/x/term v0.44.0
 	gopkg.in/yaml.v3 v3.0.1
 )
