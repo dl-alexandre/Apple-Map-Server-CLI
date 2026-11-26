@@ -3,7 +3,6 @@ package commands
 import (
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -51,14 +50,14 @@ func NewAutocompleteCommand() Command {
 		Summary:   "Get autocomplete suggestions for search queries",
 		Usage:     autocompleteUsage,
 		Run: func(args []string, stdout, stderr io.Writer) int {
-			fs := flag.NewFlagSet("autocomplete", flag.ContinueOnError)
-			near := fs.String("near", "", "Center point for location bias as 'lat,lng'")
-			limit := fs.Int("limit", 10, "Maximum number of suggestions to return")
-			jsonOut := fs.Bool("json", false, "Output raw JSON response")
-			fs.SetOutput(io.Discard)
-
-			if err := fs.Parse(args); err != nil {
-				if errors.Is(err, flag.ErrHelp) {
+			var options struct {
+				Near  string `help:"Center point for location bias as lat,lng"`
+				Limit int    `default:"10"`
+				JSON  bool
+				Query []string `arg:"" optional:"" name:"query"`
+			}
+			if err := parseOptions(args, &options); err != nil {
+				if errors.Is(err, errHelpRequested) {
 					fmt.Fprint(stdout, autocompleteUsage)
 					return ExitSuccess
 				}
@@ -68,15 +67,15 @@ func NewAutocompleteCommand() Command {
 			}
 
 			// Validate query is present
-			if fs.NArg() == 0 {
+			if len(options.Query) == 0 {
 				fmt.Fprintln(stderr, "autocomplete requires a query")
 				fmt.Fprint(stderr, autocompleteUsage)
 				return ExitUsageError
 			}
-			query := strings.Join(fs.Args(), " ")
+			query := strings.Join(options.Query, " ")
 
 			// Validate limit
-			if *limit < 1 {
+			if options.Limit < 1 {
 				fmt.Fprintln(stderr, "limit must be at least 1")
 				fmt.Fprint(stderr, autocompleteUsage)
 				return ExitUsageError
@@ -86,8 +85,8 @@ func NewAutocompleteCommand() Command {
 			var searchLat, searchLng float64
 			hasCenter := false
 
-			if *near != "" {
-				lat, lng, err := parseCoordinate(*near)
+			if options.Near != "" {
+				lat, lng, err := parseCoordinate(options.Near)
 				if err != nil {
 					fmt.Fprintf(stderr, "error parsing --near: %v\n", err)
 					fmt.Fprint(stderr, autocompleteUsage)
@@ -128,7 +127,7 @@ func NewAutocompleteCommand() Command {
 			}
 
 			// Execute autocomplete request
-			status, body, err := autocompleteRequest(client, token.Value, query, *limit, searchLat, searchLng, hasCenter)
+			status, body, err := autocompleteRequest(client, token.Value, query, options.Limit, searchLat, searchLng, hasCenter)
 			if err != nil {
 				fmt.Fprintln(stderr, err)
 				return ExitRuntimeError
@@ -142,7 +141,7 @@ func NewAutocompleteCommand() Command {
 			}
 
 			// Output results
-			if *jsonOut {
+			if options.JSON {
 				pretty, ok := formatJSON(body)
 				if ok {
 					fmt.Fprintln(stdout, pretty)
@@ -152,7 +151,7 @@ func NewAutocompleteCommand() Command {
 				return ExitSuccess
 			}
 
-			ok := writeAutocompleteTable(stdout, body, *limit)
+			ok := writeAutocompleteTable(stdout, body, options.Limit)
 			if !ok {
 				fmt.Fprintln(stdout, string(body))
 				return ExitSuccess

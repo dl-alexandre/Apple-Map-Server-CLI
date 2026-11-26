@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -32,12 +31,13 @@ func NewReverseCommand() Command {
 		Summary:   "Reverse geocode coordinates",
 		Usage:     reverseUsage,
 		Run: func(args []string, stdout, stderr io.Writer) int {
-			fs := flag.NewFlagSet("reverse", flag.ContinueOnError)
-			jsonOut := fs.Bool("json", false, "Output raw JSON response")
-			limit := fs.Int("limit", 5, "Maximum number of results to display")
-			fs.SetOutput(io.Discard)
-			if err := fs.Parse(args); err != nil {
-				if errors.Is(err, flag.ErrHelp) {
+			var options struct {
+				JSON        bool   `help:"Output raw JSON response"`
+				Limit       int    `default:"5"`
+				Coordinates string `arg:"" name:"coordinates"`
+			}
+			if err := parseOptions(args, &options); err != nil {
+				if errors.Is(err, errHelpRequested) {
 					fmt.Fprint(stdout, reverseUsage)
 					return ExitSuccess
 				}
@@ -46,19 +46,13 @@ func NewReverseCommand() Command {
 				return ExitUsageError
 			}
 
-			if *limit < 1 {
+			if options.Limit < 1 {
 				fmt.Fprintln(stderr, "limit must be at least 1")
 				fmt.Fprint(stderr, reverseUsage)
 				return ExitUsageError
 			}
 
-			if fs.NArg() != 1 {
-				fmt.Fprintln(stderr, "reverse requires coordinates")
-				fmt.Fprint(stderr, reverseUsage)
-				return ExitUsageError
-			}
-
-			lat, lon, err := parseCoordinates(fs.Arg(0))
+			lat, lon, err := parseCoordinates(options.Coordinates)
 			if err != nil {
 				fmt.Fprintln(stderr, err)
 				fmt.Fprint(stderr, reverseUsage)
@@ -107,7 +101,7 @@ func NewReverseCommand() Command {
 				return ExitRuntimeError
 			}
 
-			if *jsonOut {
+			if options.JSON {
 				pretty, ok := formatReverseJSON(body)
 				if ok {
 					fmt.Fprintln(stdout, pretty)
@@ -117,7 +111,7 @@ func NewReverseCommand() Command {
 				return ExitSuccess
 			}
 
-			ok := writeReverseTable(stdout, body, *limit)
+			ok := writeReverseTable(stdout, body, options.Limit)
 			if !ok {
 				fmt.Fprintln(stdout, string(body))
 				return ExitSuccess

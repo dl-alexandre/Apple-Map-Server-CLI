@@ -3,7 +3,6 @@ package commands
 import (
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"strings"
@@ -33,12 +32,12 @@ func NewAuthTokenCommand() Command {
 		Summary:   "Exchange Maps token for access token",
 		Usage:     authTokenUsage,
 		Run: func(args []string, stdout, stderr io.Writer) int {
-			fs := flag.NewFlagSet("auth token", flag.ContinueOnError)
-			rawOut := fs.Bool("raw", false, "Output token only")
-			jsonOut := fs.Bool("json", false, "Output token as JSON")
-			fs.SetOutput(io.Discard)
-			if err := fs.Parse(args); err != nil {
-				if errors.Is(err, flag.ErrHelp) {
+			var options struct {
+				Raw  bool `help:"Output token only"`
+				JSON bool `help:"Output token as JSON"`
+			}
+			if err := parseOptions(args, &options); err != nil {
+				if errors.Is(err, errHelpRequested) {
 					_, _ = fmt.Fprint(stdout, authTokenUsage)
 					return ExitSuccess
 				}
@@ -47,14 +46,8 @@ func NewAuthTokenCommand() Command {
 				return ExitUsageError
 			}
 
-			if *rawOut && *jsonOut {
+			if options.Raw && options.JSON {
 				_, _ = fmt.Fprintln(stderr, "raw and json cannot be used together")
-				_, _ = fmt.Fprint(stderr, authTokenUsage)
-				return ExitUsageError
-			}
-
-			if fs.NArg() != 0 {
-				_, _ = fmt.Fprintln(stderr, "auth token accepts no arguments")
 				_, _ = fmt.Fprint(stderr, authTokenUsage)
 				return ExitUsageError
 			}
@@ -89,12 +82,12 @@ func NewAuthTokenCommand() Command {
 				return ExitRuntimeError
 			}
 
-			if *rawOut {
+			if options.Raw {
 				_, _ = fmt.Fprintln(stdout, token.Value)
 				return ExitSuccess
 			}
 
-			if *jsonOut {
+			if options.JSON {
 				payload := map[string]any{
 					"access_token":       token.Value,
 					"maps_token_present": strings.TrimSpace(cfg.MapsToken) != "",

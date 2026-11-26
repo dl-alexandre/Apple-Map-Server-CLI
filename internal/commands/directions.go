@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -43,13 +42,14 @@ func NewDirectionsCommand() Command {
 		Summary:   "Get directions between locations",
 		Usage:     directionsUsage,
 		Run: func(args []string, stdout, stderr io.Writer) int {
-			fs := flag.NewFlagSet("directions", flag.ContinueOnError)
-			jsonOut := fs.Bool("json", false, "Output raw JSON response")
-			mode := fs.String("mode", "car", "Transport mode: car, walk, transit, bike")
-			etaOnly := fs.Bool("eta", false, "Show only ETA and distance summary")
-			fs.SetOutput(io.Discard)
-			if err := fs.Parse(args); err != nil {
-				if errors.Is(err, flag.ErrHelp) {
+			var options struct {
+				JSON      bool     `help:"Output raw JSON response"`
+				Mode      string   `default:"car" help:"Transport mode"`
+				ETA       bool     `help:"Show only ETA and distance summary"`
+				Positions []string `arg:"" optional:"" name:"location"`
+			}
+			if err := parseOptions(args, &options); err != nil {
+				if errors.Is(err, errHelpRequested) {
 					fmt.Fprint(stdout, directionsUsage)
 					return ExitSuccess
 				}
@@ -58,21 +58,21 @@ func NewDirectionsCommand() Command {
 				return ExitUsageError
 			}
 
-			if fs.NArg() != 2 {
+			if len(options.Positions) != 2 {
 				fmt.Fprintln(stderr, "directions requires origin and destination")
 				fmt.Fprint(stderr, directionsUsage)
 				return ExitUsageError
 			}
 
-			transportMode := normalizeTransportMode(*mode)
+			transportMode := normalizeTransportMode(options.Mode)
 			if transportMode == "" {
-				fmt.Fprintf(stderr, "invalid transport mode: %s\n", *mode)
+				fmt.Fprintf(stderr, "invalid transport mode: %s\n", options.Mode)
 				fmt.Fprint(stderr, directionsUsage)
 				return ExitUsageError
 			}
 
-			origin := fs.Arg(0)
-			destination := fs.Arg(1)
+			origin := options.Positions[0]
+			destination := options.Positions[1]
 
 			client, err := newHTTPClient()
 			if err != nil {
@@ -116,7 +116,7 @@ func NewDirectionsCommand() Command {
 				return ExitRuntimeError
 			}
 
-			if *jsonOut {
+			if options.JSON {
 				pretty, ok := formatDirectionsJSON(body)
 				if ok {
 					fmt.Fprintln(stdout, pretty)
@@ -126,7 +126,7 @@ func NewDirectionsCommand() Command {
 				return ExitSuccess
 			}
 
-			if *etaOnly {
+			if options.ETA {
 				ok := writeETASummary(stdout, body)
 				if !ok {
 					fmt.Fprintln(stdout, string(body))

@@ -1,19 +1,22 @@
 package cli
 
-// Build-time variables (set by GoReleaser or build flags)
+import cliver "github.com/dl-alexandre/cli-tools/version"
+
+// Build-time variables re-export cli-tools/version values for package users.
 var (
-	// Version is the current version of the CLI
-	Version = "dev"
-
-	// BinaryName is the name of the binary
+	Version    = cliver.Version
 	BinaryName = "ams"
-
-	// GitHubRepo is the GitHub repository name
-	GitHubRepo = "Apple-Map-Server-CLI"
-
-	// GitCommit is the git commit hash
-	GitCommit = "unknown"
-
-	// BuildTime is the build timestamp
-	BuildTime = "unknown"
+	GitHubRepo = "dl-alexandre/Apple-Map-Server-CLI"
+	GitCommit  = cliver.GitCommit
+	BuildTime  = cliver.BuildTime
 )
+
+// SetBuildInfo synchronizes the shared version package with this binary's
+// existing linker-injected metadata.
+func SetBuildInfo(version, commit, date string) {
+	Version, GitCommit, BuildTime = version, commit, date
+	cliver.Version = version
+	cliver.BinaryName = BinaryName
+	cliver.GitCommit = commit
+	cliver.BuildTime = date
+}

@@ -3,6 +3,8 @@ module github.com/dl-alexandre/Apple-Map-Server-CLI
 go 1.26.0
 
 require (
+	github.com/alecthomas/kong v1.17.0
+	github.com/dl-alexandre/cli-tools v0.0.1
 	github.com/olekukonko/tablewriter v1.1.5
 	github.com/schollz/progressbar/v3 v3.19.1
 	golang.org/x/term v0.48.0
