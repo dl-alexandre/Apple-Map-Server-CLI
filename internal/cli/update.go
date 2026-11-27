@@ -46,8 +46,16 @@ func ClearUpdateCache() error {
 		}
 		root = filepath.Join(home, ".cache")
 	}
-	path := filepath.Join(root, "ams", "update_check.json")
-	if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+	cacheDir := filepath.Join(filepath.Clean(root), "ams")
+	dir, err := os.OpenRoot(cacheDir) // #nosec G703 -- user-configured cache directory for fixed update_check.json
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+	defer func() { _ = dir.Close() }()
+	if err := dir.Remove("update_check.json"); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
 	return nil
