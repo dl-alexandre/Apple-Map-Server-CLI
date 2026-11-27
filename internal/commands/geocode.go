@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -37,14 +36,15 @@ func NewGeocodeCommand() Command {
 		Summary:   "Geocode an address",
 		Usage:     geocodeUsage,
 		Run: func(args []string, stdout, stderr io.Writer) int {
-			fs := flag.NewFlagSet("geocode", flag.ContinueOnError)
-			jsonOut := fs.Bool("json", false, "Output raw JSON response")
-			limit := fs.Int("limit", 5, "Maximum number of results to display")
-			filePath := fs.String("file", "", "Path to file with one query per line")
-			concurrency := fs.Int("concurrency", 4, "Number of concurrent requests")
-			fs.SetOutput(io.Discard)
-			if err := fs.Parse(args); err != nil {
-				if errors.Is(err, flag.ErrHelp) {
+			var options struct {
+				JSON        bool     `help:"Output raw JSON response"`
+				Limit       int      `default:"5"`
+				File        string   `help:"Path to file with one query per line"`
+				Concurrency int      `default:"4"`
+				Query       []string `arg:"" optional:"" name:"address"`
+			}
+			if err := parseOptions(args, &options); err != nil {
+				if errors.Is(err, errHelpRequested) {
 					fmt.Fprint(stdout, geocodeUsage)
 					return ExitSuccess
 				}
@@ -53,25 +53,25 @@ func NewGeocodeCommand() Command {
 				return ExitUsageError
 			}
 
-			if *limit < 1 {
+			if options.Limit < 1 {
 				fmt.Fprintln(stderr, "limit must be at least 1")
 				fmt.Fprint(stderr, geocodeUsage)
 				return ExitUsageError
 			}
 
-			if *concurrency < 1 {
+			if options.Concurrency < 1 {
 				fmt.Fprintln(stderr, "concurrency must be at least 1")
 				fmt.Fprint(stderr, geocodeUsage)
 				return ExitUsageError
 			}
 
-			if *filePath != "" && fs.NArg() > 0 {
+			if options.File != "" && len(options.Query) > 0 {
 				fmt.Fprintln(stderr, "geocode does not accept address arguments when --file is set")
 				fmt.Fprint(stderr, geocodeUsage)
 				return ExitUsageError
 			}
 
-			if *filePath == "" && fs.NArg() == 0 {
+			if options.File == "" && len(options.Query) == 0 {
 				fmt.Fprintln(stderr, "geocode requires an address")
 				fmt.Fprint(stderr, geocodeUsage)
 				return ExitUsageError
@@ -106,11 +106,11 @@ func NewGeocodeCommand() Command {
 				return ExitRuntimeError
 			}
 
-			if *filePath != "" {
-				return runGeocodeBatch(*filePath, *limit, *concurrency, *jsonOut, token.Value, client, stdout, stderr)
+			if options.File != "" {
+				return runGeocodeBatch(options.File, options.Limit, options.Concurrency, options.JSON, token.Value, client, stdout, stderr)
 			}
 
-			query := strings.Join(fs.Args(), " ")
+			query := strings.Join(options.Query, " ")
 			status, body, err := geocodeRequest(client, token.Value, query)
 			if err != nil {
 				fmt.Fprintln(stderr, err)
@@ -124,7 +124,7 @@ func NewGeocodeCommand() Command {
 				return ExitRuntimeError
 			}
 
-			if *jsonOut {
+			if options.JSON {
 				pretty, ok := formatJSON(body)
 				if ok {
 					fmt.Fprintln(stdout, pretty)
@@ -134,7 +134,7 @@ func NewGeocodeCommand() Command {
 				return ExitSuccess
 			}
 
-			ok := writeGeocodeTable(stdout, body, *limit)
+			ok := writeGeocodeTable(stdout, body, options.Limit)
 			if !ok {
 				fmt.Fprintln(stdout, string(body))
 				return ExitSuccess

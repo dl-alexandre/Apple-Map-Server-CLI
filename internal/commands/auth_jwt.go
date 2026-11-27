@@ -2,7 +2,6 @@ package commands
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -58,16 +57,15 @@ func NewAuthJWTCommand() Command {
 		Summary:   "Generate ES256 JWT from private key",
 		Usage:     authJwtUsage,
 		Run: func(args []string, stdout, stderr io.Writer) int {
-			fs := flag.NewFlagSet("auth jwt", flag.ContinueOnError)
-			teamID := fs.String("team-id", "", "Apple Developer Team ID (10 characters)")
-			privateKey := fs.String("private-key", "", "Path to .p8 private key file")
-			keyID := fs.String("key-id", "", "Key ID from Apple Developer Portal (optional)")
-			origin := fs.String("origin", "", "Origin domain (optional)")
-			useEnv := fs.Bool("env", false, "Use environment variables (AMS_TEAM_ID, AMS_PRIVATE_KEY_PATH)")
-			fs.SetOutput(io.Discard)
-
-			if err := fs.Parse(args); err != nil {
-				if errors.Is(err, flag.ErrHelp) {
+			var options struct {
+				TeamID     string `name:"team-id"`
+				PrivateKey string `name:"private-key"`
+				KeyID      string `name:"key-id"`
+				Origin     string
+				Env        bool
+			}
+			if err := parseOptions(args, &options); err != nil {
+				if errors.Is(err, errHelpRequested) {
 					_, _ = fmt.Fprint(stdout, authJwtUsage)
 					return ExitSuccess
 				}
@@ -77,24 +75,24 @@ func NewAuthJWTCommand() Command {
 			}
 
 			// Validate inputs
-			if !*useEnv {
-				if *teamID == "" || *privateKey == "" {
+			if !options.Env {
+				if options.TeamID == "" || options.PrivateKey == "" {
 					_, _ = fmt.Fprintln(stderr, "error: --team-id and --private-key are required (or use --env)")
 					_, _ = fmt.Fprint(stderr, authJwtUsage)
 					return ExitUsageError
 				}
 			} else {
 				// Load from environment
-				*teamID = os.Getenv("AMS_TEAM_ID")
-				*privateKey = os.Getenv("AMS_PRIVATE_KEY_PATH")
-				if *keyID == "" {
-					*keyID = os.Getenv("AMS_KEY_ID")
+				options.TeamID = os.Getenv("AMS_TEAM_ID")
+				options.PrivateKey = os.Getenv("AMS_PRIVATE_KEY_PATH")
+				if options.KeyID == "" {
+					options.KeyID = os.Getenv("AMS_KEY_ID")
 				}
-				if *origin == "" {
-					*origin = os.Getenv("AMS_ORIGIN")
+				if options.Origin == "" {
+					options.Origin = os.Getenv("AMS_ORIGIN")
 				}
 
-				if *teamID == "" || *privateKey == "" {
+				if options.TeamID == "" || options.PrivateKey == "" {
 					_, _ = fmt.Fprintln(stderr, "error: AMS_TEAM_ID and AMS_PRIVATE_KEY_PATH environment variables must be set")
 					_, _ = fmt.Fprint(stderr, authJwtUsage)
 					return ExitUsageError
@@ -102,22 +100,22 @@ func NewAuthJWTCommand() Command {
 			}
 
 			// Validate team ID format (should be 10 characters)
-			if len(*teamID) != 10 {
-				_, _ = fmt.Fprintf(stderr, "warning: Team ID should be 10 characters (got %d)\n", len(*teamID))
+			if len(options.TeamID) != 10 {
+				_, _ = fmt.Fprintf(stderr, "warning: Team ID should be 10 characters (got %d)\n", len(options.TeamID))
 			}
 
 			// Create JWT signer
-			signer, err := auth.NewES256Signer(*privateKey, *teamID)
+			signer, err := auth.NewES256Signer(options.PrivateKey, options.TeamID)
 			if err != nil {
 				_, _ = fmt.Fprintf(stderr, "error: %v\n", err)
 				return ExitRuntimeError
 			}
 
-			if *keyID != "" {
-				signer.SetKeyID(*keyID)
+			if options.KeyID != "" {
+				signer.SetKeyID(options.KeyID)
 			}
-			if *origin != "" {
-				signer.SetOrigin(*origin)
+			if options.Origin != "" {
+				signer.SetOrigin(options.Origin)
 			}
 
 			// Generate JWT

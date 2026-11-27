@@ -2,7 +2,6 @@ package commands
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -28,21 +27,15 @@ func NewPingCommand() Command {
 		Summary:   "Ping the Apple Map Server",
 		Usage:     pingUsage,
 		Run: func(args []string, stdout, stderr io.Writer) int {
-			fs := flag.NewFlagSet("ping", flag.ContinueOnError)
-			requestID := fs.Bool("request-id", false, "Include request ID headers")
-			fs.SetOutput(io.Discard)
-			if err := fs.Parse(args); err != nil {
-				if errors.Is(err, flag.ErrHelp) {
+			var options struct {
+				RequestID bool `name:"request-id"`
+			}
+			if err := parseOptions(args, &options); err != nil {
+				if errors.Is(err, errHelpRequested) {
 					fmt.Fprint(stdout, pingUsage)
 					return ExitSuccess
 				}
 				fmt.Fprintln(stderr, err)
-				fmt.Fprint(stderr, pingUsage)
-				return ExitUsageError
-			}
-
-			if fs.NArg() != 0 {
-				fmt.Fprintln(stderr, "ping accepts no arguments")
 				fmt.Fprint(stderr, pingUsage)
 				return ExitUsageError
 			}
@@ -94,7 +87,7 @@ func NewPingCommand() Command {
 			defer resp.Body.Close()
 
 			fmt.Fprintf(stdout, "status %d\n", resp.StatusCode)
-			if *requestID {
+			if options.RequestID {
 				for _, requestID := range httpclient.RequestIDs(resp.Header) {
 					fmt.Fprintf(stdout, "request_id %s\n", requestID)
 				}

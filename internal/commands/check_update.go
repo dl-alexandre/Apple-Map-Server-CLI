@@ -2,7 +2,6 @@ package commands
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 
@@ -26,16 +25,12 @@ func NewCheckUpdateCommand() Command {
 		Summary:   "Check for available updates",
 		Usage:     checkUpdateUsage,
 		Run: func(args []string, stdout, stderr io.Writer) int {
-			fs := flag.NewFlagSet("check-update", flag.ContinueOnError)
-			fs.SetOutput(io.Discard)
-
-			var force bool
-			var clear bool
-			fs.BoolVar(&force, "force", false, "Force check, bypassing the cache")
-			fs.BoolVar(&clear, "clear", false, "Clear the update cache")
-
-			if err := fs.Parse(args); err != nil {
-				if errors.Is(err, flag.ErrHelp) {
+			var options struct {
+				Force bool `help:"Force check, bypassing the cache"`
+				Clear bool `help:"Clear the update cache"`
+			}
+			if err := parseOptions(args, &options); err != nil {
+				if errors.Is(err, errHelpRequested) {
 					fmt.Fprint(stdout, checkUpdateUsage)
 					return ExitSuccess
 				}
@@ -44,14 +39,8 @@ func NewCheckUpdateCommand() Command {
 				return ExitUsageError
 			}
 
-			if fs.NArg() != 0 {
-				fmt.Fprintln(stderr, "check-update accepts no arguments")
-				fmt.Fprint(stderr, checkUpdateUsage)
-				return ExitUsageError
-			}
-
 			// Handle clear cache flag
-			if clear {
+			if options.Clear {
 				if err := cli.ClearUpdateCache(); err != nil {
 					fmt.Fprintf(stderr, "Failed to clear cache: %v\n", err)
 					return ExitRuntimeError
@@ -61,7 +50,7 @@ func NewCheckUpdateCommand() Command {
 			}
 
 			// Force refresh by clearing cache if requested
-			if force {
+			if options.Force {
 				_ = cli.ClearUpdateCache() // #nosec G104 - best effort, failure is non-critical
 			}
 

@@ -171,3 +171,31 @@ func TestRunGeocodeInvalidLimit(t *testing.T) {
 		t.Fatalf("expected limit error, got %q", stderr.String())
 	}
 }
+
+func TestRunSearchAutocompleteRejectsSearchOnlyFlags(t *testing.T) {
+	t.Setenv("CI", "true")
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+
+	code := Run([]string{"search", "autocomplete", "--region", "1,2,3,4", "coffee"}, stdout, stderr)
+	if code != commands.ExitUsageError {
+		t.Fatalf("expected exit %d, got %d", commands.ExitUsageError, code)
+	}
+	if !strings.Contains(stderr.String(), "unknown autocomplete flag") {
+		t.Fatalf("expected autocomplete flag error, got %q", stderr.String())
+	}
+}
+
+func TestRunUnknownFlagShowsCommandUsage(t *testing.T) {
+	t.Setenv("CI", "true")
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+
+	code := Run([]string{"ping", "--bogus"}, stdout, stderr)
+	if code != commands.ExitUsageError {
+		t.Fatalf("expected exit %d, got %d", commands.ExitUsageError, code)
+	}
+	if !strings.Contains(stderr.String(), "Usage:") || !strings.Contains(stderr.String(), "ams ping") {
+		t.Fatalf("expected ping usage in stderr, got %q", stderr.String())
+	}
+}

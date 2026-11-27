@@ -3,7 +3,6 @@ package commands
 import (
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"math"
@@ -66,17 +65,18 @@ func NewSearchCommand() Command {
 				return cmd.Run(args[1:], stdout, stderr)
 			}
 
-			fs := flag.NewFlagSet("search", flag.ContinueOnError)
-			near := fs.String("near", "", "Center point for search as 'lat,lng'")
-			region := fs.String("region", "", "Bounding box as 'north,east,south,west'")
-			nearAddress := fs.String("near-address", "", "Address to center the search around (will be geocoded)")
-			limit := fs.Int("limit", 10, "Maximum number of results to return")
-			category := fs.String("category", "", "Filter by POI category (e.g., restaurant, cafe)")
-			jsonOut := fs.Bool("json", false, "Output raw JSON response")
-			noCache := fs.Bool("no-cache", false, "Bypass cache for geocoding")
-			fs.SetOutput(io.Discard)
-			if err := fs.Parse(args); err != nil {
-				if errors.Is(err, flag.ErrHelp) {
+			var options struct {
+				Near        string `help:"Center point for search as lat,lng"`
+				Region      string `help:"Bounding box as north,east,south,west"`
+				NearAddress string `name:"near-address"`
+				Limit       int    `default:"10"`
+				Category    string
+				JSON        bool
+				NoCache     bool     `name:"no-cache"`
+				Query       []string `arg:"" optional:"" name:"query"`
+			}
+			if err := parseOptions(args, &options); err != nil {
+				if errors.Is(err, errHelpRequested) {
 					fmt.Fprint(stdout, searchUsage)
 					return ExitSuccess
 				}
@@ -86,15 +86,15 @@ func NewSearchCommand() Command {
 			}
 
 			// Validate query is present
-			if fs.NArg() == 0 {
+			if len(options.Query) == 0 {
 				fmt.Fprintln(stderr, "search requires a query")
 				fmt.Fprint(stderr, searchUsage)
 				return ExitUsageError
 			}
-			query := strings.Join(fs.Args(), " ")
+			query := strings.Join(options.Query, " ")
 
 			// Validate limit
-			if *limit < 1 {
+			if options.Limit < 1 {
 				fmt.Fprintln(stderr, "limit must be at least 1")
 				fmt.Fprint(stderr, searchUsage)
 				return ExitUsageError
@@ -102,13 +102,13 @@ func NewSearchCommand() Command {
 
 			// Validate mutually exclusive geographic flags
 			geoFlagsUsed := 0
-			if *near != "" {
+			if options.Near != "" {
 				geoFlagsUsed++
 			}
-			if *region != "" {
+			if options.Region != "" {
 				geoFlagsUsed++
 			}
-			if *nearAddress != "" {
+			if options.NearAddress != "" {
 				geoFlagsUsed++
 			}
 
@@ -124,8 +124,8 @@ func NewSearchCommand() Command {
 			hasValidatedCenter := false
 			hasValidatedBbox := false
 
-			if *near != "" {
-				lat, lng, err := parseCoordinate(*near)
+			if options.Near != "" {
+				lat, lng, err := parseCoordinate(options.Near)
 				if err != nil {
 					fmt.Fprintf(stderr, "error parsing --near: %v\n", err)
 					fmt.Fprint(stderr, searchUsage)
@@ -135,8 +135,8 @@ func NewSearchCommand() Command {
 				hasValidatedCenter = true
 			}
 
-			if *region != "" {
-				n, e, s, w, err := parseBoundingBox(*region)
+			if options.Region != "" {
+				n, e, s, w, err := parseBoundingBox(options.Region)
 				if err != nil {
 					fmt.Fprintf(stderr, "error parsing --region: %v\n", err)
 					fmt.Fprint(stderr, searchUsage)
@@ -177,7 +177,7 @@ func NewSearchCommand() Command {
 
 			// Initialize cache (non-fatal if it fails)
 			var geoCache *cache.Cache
-			if !*noCache {
+			if !options.NoCache {
 				geoCache, _ = cache.New()
 			}
 
@@ -188,17 +188,17 @@ func NewSearchCommand() Command {
 			bboxNorth, bboxEast, bboxSouth, bboxWest := validatedNorth, validatedEast, validatedSouth, validatedWest
 			hasBbox := hasValidatedBbox
 
-			if *nearAddress != "" {
+			if options.NearAddress != "" {
 				// Check cache first if not disabled
 				if geoCache != nil {
-					if lat, lng, ok := geoCache.Get(*nearAddress); ok {
+					if lat, lng, ok := geoCache.Get(options.NearAddress); ok {
 						searchLat = lat
 						searchLng = lng
 						hasCenter = true
-						fmt.Fprintf(stderr, "Using cached coordinates for '%s'\n", *nearAddress)
+						fmt.Fprintf(stderr, "Using cached coordinates for '%s'\n", options.NearAddress)
 					} else {
 						// Not in cache, need to geocode
-						status, body, err := geocodeRequest(client, token.Value, *nearAddress)
+						status, body, err := geocodeRequest(client, token.Value, options.NearAddress)
 						if err != nil {
 							fmt.Fprintf(stderr, "error geocoding address: %v\n", err)
 							return ExitRuntimeError
@@ -247,7 +247,7 @@ func NewSearchCommand() Command {
 						hasCenter = true
 
 						// Save to cache
-						geoCache.Set(*nearAddress, lat, lng)
+						geoCache.Set(options.NearAddress, lat, lng)
 						if err := geoCache.Save(); err != nil {
 							// Non-fatal: just log the error
 							fmt.Fprintf(stderr, "warning: failed to save geocode cache: %v\n", err)
@@ -255,7 +255,7 @@ func NewSearchCommand() Command {
 					}
 				} else {
 					// No cache or --no-cache flag used, geocode directly
-					status, body, err := geocodeRequest(client, token.Value, *nearAddress)
+					status, body, err := geocodeRequest(client, token.Value, options.NearAddress)
 					if err != nil {
 						fmt.Fprintf(stderr, "error geocoding address: %v\n", err)
 						return ExitRuntimeError
@@ -306,7 +306,7 @@ func NewSearchCommand() Command {
 			}
 
 			// Build and execute search request
-			status, body, err := searchRequest(client, token.Value, query, *limit, *category, searchLat, searchLng, hasCenter, bboxNorth, bboxEast, bboxSouth, bboxWest, hasBbox)
+			status, body, err := searchRequest(client, token.Value, query, options.Limit, options.Category, searchLat, searchLng, hasCenter, bboxNorth, bboxEast, bboxSouth, bboxWest, hasBbox)
 			if err != nil {
 				fmt.Fprintln(stderr, err)
 				return ExitRuntimeError
@@ -320,7 +320,7 @@ func NewSearchCommand() Command {
 			}
 
 			// Output results
-			if *jsonOut {
+			if options.JSON {
 				pretty, ok := formatJSON(body)
 				if ok {
 					fmt.Fprintln(stdout, pretty)
@@ -330,7 +330,7 @@ func NewSearchCommand() Command {
 				return ExitSuccess
 			}
 
-			ok := writeSearchTable(stdout, body, *limit, hasCenter, searchLat, searchLng)
+			ok := writeSearchTable(stdout, body, options.Limit, hasCenter, searchLat, searchLng)
 			if !ok {
 				fmt.Fprintln(stdout, string(body))
 				return ExitSuccess
